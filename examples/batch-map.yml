@@ -1,0 +1,109 @@
+# Batch processing with Map state — Serverless Framework format.
+# The "ProcessBatch" node opens a sub-graph tab showing the iterator states.
+
+batchProcess:
+  name: batch-process-${opt:stage}
+  definition:
+    Comment: Process a batch of incoming records with retry and error handling
+    StartAt: LoadBatch
+
+    States:
+
+      LoadBatch:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: load-batch
+          Payload.$: $
+        Next: CheckBatchSize
+
+      CheckBatchSize:
+        Type: Choice
+        Choices:
+          - Variable: $.count
+            NumericEquals: 0
+            Next: EmptyBatch
+        Default: ProcessBatch
+
+      EmptyBatch:
+        Type: Succeed
+
+      ProcessBatch:
+        Type: Map
+        ItemsPath: $.records
+        MaxConcurrency: 10
+        Iterator:
+          StartAt: ValidateRecord
+          States:
+
+            ValidateRecord:
+              Type: Task
+              Resource: arn:aws:states:::lambda:invoke
+              Parameters:
+                FunctionName: validate-record
+                Payload.$: $
+              Catch:
+                - ErrorEquals: [ValidationError]
+                  Next: SkipInvalidRecord
+              Next: TransformRecord
+
+            TransformRecord:
+              Type: Task
+              Resource: arn:aws:states:::lambda:invoke
+              Parameters:
+                FunctionName: transform-record
+                Payload.$: $
+              Next: StoreRecord
+
+            StoreRecord:
+              Type: Task
+              Resource: arn:aws:states:::lambda:invoke
+              Parameters:
+                FunctionName: store-record
+                Payload.$: $
+              Retry:
+                - ErrorEquals: [States.TaskFailed]
+                  IntervalSeconds: 1
+                  MaxAttempts: 3
+                  BackoffRate: 2
+              End: true
+
+            SkipInvalidRecord:
+              Type: Pass
+              Result:
+                skipped: true
+              End: true
+
+        Catch:
+          - ErrorEquals: [States.ALL]
+            Next: BatchFailed
+        Next: Summarise
+
+      Summarise:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: summarise-batch
+          Payload.$: $
+        Next: NotifyComplete
+
+      NotifyComplete:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: notify-complete
+          Payload.$: $
+        End: true
+
+      BatchFailed:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: notify-batch-failure
+          Payload.$: $
+        Next: Fail
+
+      Fail:
+        Type: Fail
+        Error: BatchProcessingError
+        Cause: One or more batch items could not be processed

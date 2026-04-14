@@ -1,0 +1,18 @@
+# Source — not needed in the package, only dist/extension.js matters
+src/**
+out/**
+
+# Config / tooling
+.vscode/**
+.vscode-test/**
+.eslintrc.json
+tsconfig.json
+esbuild.js
+
+# Dev dependencies (esbuild bundles everything into dist/extension.js)
+node_modules/**
+
+# Misc
+**/*.map
+**/*.ts
+.gitignore

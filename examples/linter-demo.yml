@@ -1,0 +1,85 @@
+# Linter demo — intentionally broken definitions.
+# Open in VS Code to see StepLens diagnostics in action.
+#
+# ── Structural errors (brokenWorkflow) ────────────────────────────────────────
+#   [Error]   StartAt "NonExistentState" does not exist          (R-1)
+#   [Error]   "ProcessItem": Next "MissingStep" not found        (R-2)
+#   [Error]   "OrphanedState": neither Next nor End              (R-3)
+#   [Warning] "OrphanedState": unreachable from StartAt          (W-1)
+#   [Warning] "WaitForCallback": waitForTaskToken + no HeartbeatSeconds (R-8)
+#
+# ── JSONata errors (jsonataWorkflow) ──────────────────────────────────────────
+#   [Error]   "ValidateInput": "Parameters" used in JSONata mode (J-1)
+#   [Error]   "RouteByScore": Choices[0].Condition missing {%..%} (J-2)
+#   [Error]   "BuildPayload": Arguments.total — expression incomplete (J-3)
+#   [Error]   "BuildPayload": Arguments.id — JSONPath "$." in JSONata (J-3)
+#   [Error]   "SummarisePass": Output — $states.result not available in Pass (J-4)
+
+# ── Part 1: Structural errors ──────────────────────────────────────────────────
+
+brokenWorkflow:
+  definition:
+    Comment: Intentionally broken — demonstrates structural linter rules
+    StartAt: NonExistentState   # R-1: this state does not exist
+
+    States:
+
+      ProcessItem:
+        Type: Task
+        Resource: arn:aws:lambda:eu-west-1:123456789012:function:process-item
+        Next: MissingStep        # R-2: MissingStep is not defined
+
+      WaitForCallback:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke.waitForTaskToken
+        Parameters:
+          FunctionName: my-callback-handler
+          Payload:
+            taskToken.$: $$.Task.Token
+        # R-8 (warning): no HeartbeatSeconds — execution could block forever
+        # R-8 (warning): no Catch for States.HeartbeatTimeout
+        End: true
+
+      OrphanedState:             # W-1: unreachable — nothing points here
+        Type: Task               # R-3: no Next and no End
+        Resource: arn:aws:lambda:eu-west-1:123456789012:function:orphan
+
+
+# ── Part 2: JSONata errors ─────────────────────────────────────────────────────
+
+jsonataWorkflow:
+  definition:
+    Comment: Intentionally broken JSONata expressions
+    QueryLanguage: JSONata
+    StartAt: ValidateInput
+
+    States:
+
+      ValidateInput:
+        Type: Task
+        Resource: arn:aws:lambda:eu-west-1:123456789012:function:validate
+        Parameters:              # J-1: should be "Arguments" in JSONata mode
+          userId: "{% $states.input.id %}"
+        Next: RouteByScore
+
+      RouteByScore:
+        Type: Choice
+        Choices:
+          - Condition: $states.input.score > 80   # J-2: missing {%...%} delimiters
+            Next: HighScore
+          - Condition: "{% $states.input.score > 40 %}"
+            Next: LowScore
+        Default: LowScore
+
+      HighScore:
+        Type: Task
+        Resource: arn:aws:lambda:eu-west-1:123456789012:function:high-score
+        Arguments:
+          total: "{% $states.input.score +  %}"   # J-3: incomplete expression (trailing +)
+          id:    "{% $.userId %}"                  # J-3: JSONPath $. inside JSONata
+        End: true
+
+      LowScore:
+        Type: Pass
+        Output: "{% $states.result.value %}"       # J-4: $states.result not available in Pass
+        End: true

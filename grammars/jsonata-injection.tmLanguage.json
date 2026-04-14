@@ -1,0 +1,70 @@
+{
+  "name": "JSONata in ASL",
+  "scopeName": "inline.jsonata.sfn",
+  "injectionSelector": "L:source.yaml, L:source.json",
+  "patterns": [
+    { "include": "#jsonata-block" }
+  ],
+  "repository": {
+    "jsonata-block": {
+      "name": "meta.embedded.block.jsonata",
+      "begin": "\\{%",
+      "beginCaptures": {
+        "0": { "name": "punctuation.section.embedded.begin.jsonata" }
+      },
+      "end": "%\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.embedded.end.jsonata" }
+      },
+      "patterns": [
+        { "include": "#states-vars" },
+        { "include": "#aws-functions" },
+        { "include": "#std-functions" },
+        { "include": "#variables" },
+        { "include": "#strings-single" },
+        { "include": "#numbers" },
+        { "include": "#keywords" },
+        { "include": "#operators" }
+      ]
+    },
+    "states-vars": {
+      "comment": "$states.input / $states.result / $states.errorOutput / $states.context",
+      "match": "\\$states\\.(?:input|result|errorOutput|context)(?:\\.[\\w.\\[\\]]*)?",
+      "name": "variable.language.states.jsonata"
+    },
+    "aws-functions": {
+      "comment": "AWS Step Functions built-in JSONata functions",
+      "match": "\\$(?:partition|range|hash|random|uuid|parse)(?=\\s*\\()",
+      "name": "support.function.builtin.aws.jsonata"
+    },
+    "std-functions": {
+      "comment": "Standard JSONata built-in functions",
+      "match": "\\$(?:string|length|substring|substringBefore|substringAfter|uppercase|lowercase|trim|pad|contains|split|join|match|replace|eval|base64encode|base64decode|encodeUrl|decodeUrl|number|abs|floor|ceil|round|power|sqrt|sum|max|min|average|boolean|not|exists|count|append|sort|reverse|shuffle|distinct|zip|keys|lookup|spread|merge|each|sift|error|assert|type|now|millis|fromMillis|toMillis)(?=\\s*\\()",
+      "name": "support.function.builtin.jsonata"
+    },
+    "variables": {
+      "match": "\\$[a-zA-Z_][\\w]*",
+      "name": "variable.other.jsonata"
+    },
+    "strings-single": {
+      "name": "string.quoted.single.jsonata",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        { "name": "constant.character.escape.jsonata", "match": "\\\\." }
+      ]
+    },
+    "numbers": {
+      "match": "-?\\b\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b",
+      "name": "constant.numeric.jsonata"
+    },
+    "keywords": {
+      "match": "\\b(?:true|false|null|and|or|not|in)\\b",
+      "name": "constant.language.jsonata"
+    },
+    "operators": {
+      "match": "~>|!=|<=|>=|[+\\-*/%&=<>!?:.,\\[\\]{}()]",
+      "name": "keyword.operator.jsonata"
+    }
+  }
+}

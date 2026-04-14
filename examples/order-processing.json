@@ -1,0 +1,103 @@
+{
+  "Comment": "Order processing workflow — JSONata style. Open the StepLens preview to visualise.",
+  "QueryLanguage": "JSONata",
+  "StartAt": "ValidateOrder",
+  "States": {
+    "ValidateOrder": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:validate-order",
+      "Assign": {
+        "orderId": "{% $states.input.id %}",
+        "orderType": "{% $states.input.type %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "Next": "ValidationFailed"
+        }
+      ],
+      "Next": "RouteByType"
+    },
+
+    "RouteByType": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $orderType = 'express' %}",
+          "Next": "ExpressShipping"
+        },
+        {
+          "Condition": "{% $orderType = 'standard' %}",
+          "Next": "StandardShipping"
+        },
+        {
+          "Condition": "{% $orderType = 'pickup' %}",
+          "Next": "SchedulePickup"
+        }
+      ],
+      "Default": "UnknownType"
+    },
+
+    "ExpressShipping": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:express-ship",
+      "Next": "ChargePayment"
+    },
+
+    "StandardShipping": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:standard-ship",
+      "Next": "ChargePayment"
+    },
+
+    "SchedulePickup": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:schedule-pickup",
+      "Next": "ChargePayment"
+    },
+
+    "UnknownType": {
+      "Type": "Fail",
+      "Error": "UnknownShippingType",
+      "Cause": "Order type not recognised"
+    },
+
+    "ValidationFailed": {
+      "Type": "Fail",
+      "Error": "ValidationError",
+      "Cause": "Order validation failed"
+    },
+
+    "ChargePayment": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:charge-payment",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 2,
+          "BackoffRate": 1.5
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["PaymentDeclined"],
+          "Next": "NotifyPaymentFailed"
+        }
+      ],
+      "Next": "SendConfirmation"
+    },
+
+    "NotifyPaymentFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:notify-payment-failed",
+      "End": true
+    },
+
+    "SendConfirmation": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-west-1:123456789012:function:send-confirmation-email",
+      "End": true
+    }
+  }
+}

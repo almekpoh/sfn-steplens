@@ -1,0 +1,98 @@
+# Parallel data enrichment — Serverless Framework format.
+# Open the StepLens preview: click the ⊤ icon in the editor toolbar.
+# Click the "EnrichData" node to explore each branch in its own tab.
+
+enrichData:
+  name: enrich-data-${opt:stage}
+  definition:
+    Comment: Fetch geo data and user profile in parallel, then merge results
+    StartAt: EnrichData
+    States:
+
+      EnrichData:
+        Type: Parallel
+        Branches:
+          - StartAt: FetchGeoData
+            States:
+              FetchGeoData:
+                Type: Task
+                Resource: arn:aws:states:::lambda:invoke
+                Parameters:
+                  FunctionName: fetch-geo-data
+                  Payload.$: $
+                Retry:
+                  - ErrorEquals: [States.TaskFailed]
+                    IntervalSeconds: 2
+                    MaxAttempts: 2
+                End: true
+
+          - StartAt: FetchUserProfile
+            States:
+              FetchUserProfile:
+                Type: Task
+                Resource: arn:aws:states:::lambda:invoke
+                Parameters:
+                  FunctionName: fetch-user-profile
+                  Payload.$: $
+                Catch:
+                  - ErrorEquals: [States.ALL]
+                    Next: ProfileFallback
+                End: true
+
+              ProfileFallback:
+                Type: Pass
+                Result:
+                  profile: {}
+                End: true
+        Catch:
+          - ErrorEquals: [States.ALL]
+            Next: EnrichmentFailed
+        Next: MergeResults
+
+      MergeResults:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: merge-enrichment
+          Payload.$: $
+        Next: RouteByScore
+
+      RouteByScore:
+        Type: Choice
+        Choices:
+          - Variable: $.score
+            NumericGreaterThanEquals: 80
+            Next: HighValueUser
+          - Variable: $.score
+            NumericGreaterThanEquals: 40
+            Next: MediumValueUser
+        Default: LowValueUser
+
+      HighValueUser:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: high-value-handler
+          Payload.$: $
+        End: true
+
+      MediumValueUser:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: medium-value-handler
+          Payload.$: $
+        End: true
+
+      LowValueUser:
+        Type: Task
+        Resource: arn:aws:states:::lambda:invoke
+        Parameters:
+          FunctionName: low-value-handler
+          Payload.$: $
+        End: true
+
+      EnrichmentFailed:
+        Type: Fail
+        Error: EnrichmentError
+        Cause: Data enrichment step failed
