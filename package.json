@@ -13,7 +13,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/almekpoh/sfn-steplens"
+    "url": "https://github.com/almekpoh/aws-steplens"
   },
   "engines": {
     "vscode": "^1.85.0"

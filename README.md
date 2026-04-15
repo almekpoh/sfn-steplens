@@ -1,7 +1,5 @@
 # StepLens — AWS Step Functions for VS Code
 
-[![CI](https://github.com/almekpoh/sfn-steplens/actions/workflows/ci.yml/badge.svg)](https://github.com/almekpoh/sfn-steplens/actions/workflows/ci.yml)
-
 Visualize, navigate and lint **AWS Step Functions** definitions (ASL) directly in VS Code.
 Supports **YAML** (Serverless Framework), raw **JSON**, and **JSONata** query language.
 
