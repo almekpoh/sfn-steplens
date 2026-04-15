@@ -1,4 +1,5 @@
-import * as assert from 'assert';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { AslParser } from '../src/aslParser';
 import { AslLinter } from '../src/linter';
 
