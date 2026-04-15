@@ -102,12 +102,16 @@ Open a live graph of your state machine with a single click on the ⊤ toolbar i
 3. Lint errors appear as squiggly underlines; hover over them to read the message.
 4. The status bar shows `✓ StepLens` (clean), `⚠ N alertes`, or `✗ N erreurs`.
 
+> **Icon not visible?** The toolbar icon may be hidden behind the **`···` overflow menu** (three dots at the right of the editor title bar). Click `···` to find it, then right-click it to pin it to the toolbar.
+
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `StepLens: Open Graph Preview` | Open the visual graph for the active file |
-| `StepLens: Lint Current File` | Run the linter manually |
+You can also run StepLens commands from the **Command Palette** (`⇧⌘P` on macOS, `Ctrl+Shift+P` on Windows/Linux):
+
+| Command | Keyboard shortcut | Description |
+|---------|-------------------|-------------|
+| `StepLens: Open Graph Preview` | `⌘⌥G` / `Ctrl+Alt+G` | Open the visual graph for the active file |
+| `StepLens: Lint Current File` | — | Run the linter manually |
 
 ### Settings
 
