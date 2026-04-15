@@ -1,8 +1,13 @@
 {
   "name": "sfn-steplens",
   "displayName": "StepLens",
-  "description": "Visualize, navigate and lint AWS Step Functions definitions (ASL YAML/JSON + JSONata). Interactive graph preview, real-time linter with 14 rules, Parallel/Map sub-graph exploration, and PNG/JPEG export.",
-  "version": "0.1.0",
+  "description": "Visualize, navigate and lint AWS Step Functions definitions (ASL YAML/JSON + JSONata). Interactive graph preview, real-time linter with 30+ rules, Parallel/Map sub-graph exploration, and PNG/JPEG export.",
+  "version": "0.1.1",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "pricing": "Free",
   "publisher": "almatrix",
   "icon": "images/icon.png",
   "license": "MIT",
@@ -13,8 +18,32 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Linters", "Visualization", "Other"],
-  "keywords": ["aws", "step functions", "asl", "serverless", "state machine", "jsonata", "workflow"],
+  "categories": [
+    "Linters",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "aws",
+    "step functions",
+    "stepfunction",
+    "step function",
+    "statemachine",
+    "state machine",
+    "asl",
+    "serverless",
+    "jsonata",
+    "workflow",
+    "sfn",
+    "visualization",
+    "graph",
+    "linter",
+    "diagram",
+    "yaml",
+    "json",
+    "parallel",
+    "map"
+  ],
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:yaml",
@@ -34,7 +63,10 @@
       {
         "path": "./grammars/jsonata-injection.tmLanguage.json",
         "scopeName": "inline.jsonata.sfn",
-        "injectTo": ["source.yaml", "source.json"]
+        "injectTo": [
+          "source.yaml",
+          "source.json"
+        ]
       }
     ],
     "commands": [
@@ -83,15 +115,19 @@
     "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
     "compile": "tsc -p ./",
     "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "test": "mocha --require ts-node/register --require test/setup.ts 'test/**/*.test.ts' --timeout 10000"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "esbuild": "^0.20.0",
     "eslint": "^8.0.0",
+    "mocha": "^11.7.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
   },
   "dependencies": {

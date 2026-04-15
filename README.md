@@ -1,7 +1,11 @@
 # StepLens — AWS Step Functions for VS Code
 
+[![CI](https://github.com/almekpoh/sfn-steplens/actions/workflows/ci.yml/badge.svg)](https://github.com/almekpoh/sfn-steplens/actions/workflows/ci.yml)
+
 Visualize, navigate and lint **AWS Step Functions** definitions (ASL) directly in VS Code.
 Supports **YAML** (Serverless Framework), raw **JSON**, and **JSONata** query language.
+
+![StepLens Preview](images/preview.svg)
 
 ---
 
@@ -27,14 +31,17 @@ Open a live graph of your state machine with a single click on the ⊤ toolbar i
 | `↺` in label | State has a `Retry` block configured |
 | `×N` in label | Map state with `MaxConcurrency: N` (`×∞` if 0 = unlimited) |
 | `‖N` in label | Parallel state with N branches |
+| `⊕` in label | Distributed Map (`ItemProcessor.ProcessorConfig.Mode: DISTRIBUTED`) |
+| `⏸` in label | Task using `.waitForTaskToken` (waits for external callback) |
+| `🌐` in label | HTTP Task (`states:::http:invoke`) |
 | Purple dashed border | Parallel / Map — double-click to explore the sub-graph |
 | Orange highlight | State at cursor position |
 
 ### Real-time Linter
 
-Errors and warnings appear inline as you type, with hover tooltips explaining each issue.
+**30+ rules** covering structural validity, JSONata/JSONPath field usage, distributed Map configuration, and state name constraints. Errors and warnings appear inline as you type, with hover tooltips explaining each issue.
 
-#### Structural rules (JSONPath + JSONata)
+#### Structural rules
 
 | Rule | Severity | Description |
 |------|----------|-------------|
@@ -48,7 +55,29 @@ Errors and warnings appear inline as you type, with hover tooltips explaining ea
 | R-8 | Warning | `waitForTaskToken` without `HeartbeatSeconds` or missing `Catch: HeartbeatTimeout` |
 | R-9 | Error | Map `Iterator` / `ItemProcessor` is missing or not a valid sub-state-machine |
 | R-10 | Warning | `MaxConcurrency: 0` on Map state — unlimited concurrency, verify it's intentional |
+| R-11 | Error | `TimeoutSeconds` and `TimeoutSecondsPath` are mutually exclusive (same for `HeartbeatSeconds`/`HeartbeatSecondsPath`) |
+| R-12 | Error | `HeartbeatSeconds` must be less than `TimeoutSeconds` when both are defined |
+| R-13 | Error | Fail state: `Error`/`ErrorPath` mutually exclusive; `Cause`/`CausePath` mutually exclusive |
+| R-14 | Error | Wait state must have exactly one timing field (`Seconds`, `Timestamp`, `SecondsPath`, or `TimestampPath`) |
+| R-15 | Error | `States.ALL` in `ErrorEquals` must be alone and placed last in Catch/Retry array |
+| R-16 | Warning | `States.DataLimitExceeded` and `States.Runtime` cannot be caught |
+| R-17 | Error | `ErrorEquals` array is empty in Catch or Retry clause |
+| R-18 | Error | `ItemsPath` (JSONPath-only) used in JSONata mode — use `Items` instead |
+| R-19 | Error | `ToleratedFailurePercentage` must be between 0 and 100 |
+| R-20 | Error | `MaxConcurrency`/`MaxConcurrencyPath` mutually exclusive (and `ToleratedFailureCount*`, `ToleratedFailurePercentage*`) |
+| R-21 | Error | `ProcessorConfig.ExecutionType` required when `Mode: DISTRIBUTED` |
+| R-22 | Warning | `ProcessorConfig.ExecutionType` ignored in `Mode: INLINE` (only applies to DISTRIBUTED) |
+| R-23 | Warning | `Mode: INLINE` with `MaxConcurrency > 40` — switch to `DISTRIBUTED` to exceed this limit |
+| R-24 | Error | State name exceeds 80 characters |
+| R-25 | Error | State name contains forbidden characters |
 | W-1 | Warning | State is unreachable from `StartAt` |
+| W-2 | Warning | Choice state has no `Default` — risk of `States.NoChoiceMatched` at runtime |
+| W-3 | Error | `$states.errorOutput` used outside a `Catch` block (JSONata) |
+| W-4 | Warning | `$states.context.Task.Token` used in a state that is not `.waitForTaskToken` |
+| — | Warning | Deprecated `Iterator` field — migrate to `ItemProcessor` |
+| — | Error | `BackoffRate` in Retry must be ≥ 1.0 |
+| — | Error | Distributed Map `Label` exceeds 40 characters or contains forbidden characters |
+| — | Error | `.waitForTaskToken` used inside a Distributed Map with `ExecutionType: EXPRESS` |
 
 #### JSONata rules (when `QueryLanguage: JSONata`)
 
@@ -58,6 +87,11 @@ Errors and warnings appear inline as you type, with hover tooltips explaining ea
 | J-2 | Error | Choice branch uses `Variable` in JSONata mode (use `Condition`) or vice-versa; `Condition` must be wrapped in `{%…%}` |
 | J-3 | Error | Invalid `{%…%}` expression: empty, unclosed brace/bracket/paren/string, `$eval()`, trailing operator, JSONPath `$.` syntax inside JSONata |
 | J-4 | Error | `$states.result` used in a state that has no result (only available in Task, Parallel, Map) |
+| J-5 | Error | `ResultSelector` is JSONPath-only — not available in JSONata mode |
+| J-6 | Error | `TimeoutSecondsPath` / `HeartbeatSecondsPath` are JSONPath-only |
+| J-7 | Error | `SecondsPath` / `TimestampPath` in Wait state are JSONPath-only |
+| J-8 | Error | `States.*` intrinsic functions (e.g. `States.Format`) used inside a `{%…%}` JSONata expression — these only work in JSONPath mode |
+| J-9 | Error | `$$.` (Context Object JSONPath syntax) used in JSONata mode — use `$states.context` instead |
 
 ---
 

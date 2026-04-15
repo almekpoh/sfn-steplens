@@ -1,15 +1,51 @@
 # Changelog
 
-## [Unreleased]
+---
+
+## [0.1.1] — 2026-04-15
 
 ### Added
 - **‖N** suffix in Parallel node labels — shows the number of branches at a glance
 - **‖N** entry added to the in-graph legend
-
----
-
-All notable changes to StepLens are documented here.
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+- **⊕** suffix in Map node labels when `ItemProcessor.ProcessorConfig.Mode: DISTRIBUTED`
+- **⏸** suffix in Task node labels using `.waitForTaskToken`
+- **🌐** suffix in Task node labels using `states:::http:invoke` (HTTP Task)
+- `AslItemProcessor` interface with `ProcessorConfig` (Mode / ExecutionType) for distributed Map
+- `AslRetryClause` interface with `MaxDelaySeconds` and `JitterStrategy` fields
+- `Assign` field added to `AslCatchClause` and `AslChoiceBranch`
+- New fields in `AslState`: `TimeoutSeconds`, `TimeoutSecondsPath`, `HeartbeatSecondsPath`, `Credentials`, `ResultSelector`, `ErrorPath`, `CausePath`, `SecondsPath`, `TimestampPath`, `Result`, `ItemsPath`, `Items`, `ItemSelector`, `MaxConcurrencyPath`, `ToleratedFailureCount/Percentage` (+ Path variants), `ItemReader`, `ResultWriter`, `ItemBatcher`, `Label`
+- `TimeoutSeconds` and `Version` added to `AslDefinition`
+- **R-11** — `TimeoutSeconds`/`TimeoutSecondsPath` and `HeartbeatSeconds`/`HeartbeatSecondsPath` mutual exclusion
+- **R-12** — `HeartbeatSeconds` must be < `TimeoutSeconds`
+- **R-13** — Fail state `Error`/`ErrorPath` and `Cause`/`CausePath` mutual exclusion
+- **R-14** — Wait state must have exactly one timing field
+- **R-15** — `States.ALL` in `ErrorEquals` must be alone and last (Catch + Retry)
+- **R-16** — `States.DataLimitExceeded` and `States.Runtime` cannot be caught
+- **R-17** — `ErrorEquals` must not be empty in Catch or Retry
+- **R-18** — `ItemsPath` (JSONPath-only) / `Items` (JSONata-only) cross-mode validation
+- **R-19** — `ToleratedFailurePercentage` must be 0–100
+- **R-20** — `MaxConcurrency`/`MaxConcurrencyPath`, `ToleratedFailureCount*`, `ToleratedFailurePercentage*` mutual exclusion
+- **R-21** — `ProcessorConfig.ExecutionType` required when `Mode: DISTRIBUTED`
+- **R-22** — `ProcessorConfig.ExecutionType` ignored in `Mode: INLINE`
+- **R-23** — `Mode: INLINE` with `MaxConcurrency > 40` suggests switching to DISTRIBUTED
+- Distributed Map: `Label` length (max 40) and forbidden character validation
+- Distributed Map + EXPRESS: `.waitForTaskToken` usage flagged as incompatible
+- **R-24** — State name max 80 characters
+- **R-25** — State name forbidden characters
+- **W-2** — Choice state without `Default` warns of potential `States.NoChoiceMatched`
+- **W-3** — `$states.errorOutput` used outside a Catch block (JSONata)
+- **W-4** — `$states.context.Task.Token` outside `.waitForTaskToken` states
+- **J-5** — `ResultSelector` flagged in JSONata mode
+- **J-6** — `TimeoutSecondsPath`/`HeartbeatSecondsPath` flagged in JSONata mode
+- **J-7** — `SecondsPath`/`TimestampPath` flagged in JSONata Wait state
+- **J-8** — `States.*` intrinsic functions inside `{%…%}` JSONata expressions
+- **J-9** — `$$.` Context Object JSONPath syntax in JSONata mode
+- Deprecated `Iterator` warning: suggests migrating to `ItemProcessor`
+- `BackoffRate < 1.0` validation in Retry clauses
+- **55 unit tests** covering parser (all formats, all node annotations) and linter (all rules) — run with `npm test`
+- GitHub Actions CI workflow: unit tests + ESLint on every push/PR, VSIX artifact on success
+- `galleryBanner` (dark theme) and `pricing: "Free"` in `package.json`
+- Preview image (`images/preview.svg`) added to README
 
 ---
 

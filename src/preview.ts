@@ -246,6 +246,9 @@ export class PreviewPanel {
     <div class="leg"><span class="dot" style="background:#1a3d1a;border:1.5px solid #555;box-shadow:0 0 0 3px rgba(76,175,80,0.12)"></span>↺ avec Retry</div>
     <div class="leg"><span class="dot" style="background:#2a1a3d;border:1.5px solid #a78bfa;border-style:dashed"></span>‖N branches Parallel</div>
     <div class="leg"><span class="dot" style="background:#2a1a3d;border:1.5px solid #a78bfa;border-style:dashed"></span>×N concurrence Map (×∞ = illimité)</div>
+    <div class="leg"><span class="dot" style="background:#2a1a3d;border:1.5px solid #a78bfa;border-style:dashed"></span>⊕ Map distribué (DISTRIBUTED)</div>
+    <div class="leg"><span class="dot" style="background:#1e4080;border:1.5px solid #4a9de8"></span>⏸ waitForTaskToken</div>
+    <div class="leg"><span class="dot" style="background:#1e4080;border:1.5px solid #4a9de8"></span>🌐 HTTP Task</div>
     <div class="leg"><span class="dot" style="background:#2a1800;border:2px solid #f5a623"></span>Current (cursor)</div>
     <div class="leg-sep"></div>
     <div style="font-size:10px;color:#666;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Transitions</div>
