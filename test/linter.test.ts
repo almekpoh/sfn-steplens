@@ -48,7 +48,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn, Next: Nowhere }
 `);
-    assert.ok(hasError(errs, 'Next "Nowhere" introuvable'));
+    assert.ok(hasError(errs, 'Next "Nowhere" not found'));
   });
 });
 
@@ -61,7 +61,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn }
 `);
-    assert.ok(hasError(errs, 'ni "Next" ni "End"'));
+    assert.ok(hasError(errs, 'neither "Next" nor "End"'));
   });
 
   it('does not flag Succeed or Fail', () => {
@@ -71,7 +71,7 @@ States:
   A: { Type: Task, Resource: arn, Next: B }
   B: { Type: Succeed }
 `);
-    assert.ok(!hasError(errs, 'ni "Next" ni "End"'));
+    assert.ok(!hasError(errs, 'neither "Next" nor "End"'));
   });
 });
 
@@ -90,7 +90,7 @@ States:
         Next: Nowhere
     End: true
 `);
-    assert.ok(hasError(errs, 'Catch[0].Next "Nowhere" introuvable'));
+    assert.ok(hasError(errs, 'Catch[0].Next "Nowhere" not found'));
   });
 });
 
@@ -103,7 +103,7 @@ StartAt: A
 States:
   A: { Type: Choice, Choices: [] }
 `);
-    assert.ok(hasError(errs, 'aucune branche'));
+    assert.ok(hasError(errs, 'no branches'));
   });
 
   it('reports missing Next in branch', () => {
@@ -116,7 +116,7 @@ States:
       - Variable: $.x
         StringEquals: y
 `);
-    assert.ok(hasError(errs, 'sans "Next"'));
+    assert.ok(hasError(errs, 'missing "Next"'));
   });
 });
 
@@ -149,7 +149,7 @@ States:
     HeartbeatSeconds: 300
     End: true
 `);
-    assert.ok(hasError(errs, 'Catch pour States.HeartbeatTimeout'));
+    assert.ok(hasError(errs, 'Catch for States.HeartbeatTimeout'));
   });
 });
 
@@ -169,7 +169,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'illimitée'));
+    assert.ok(hasError(errs, 'unlimited'));
   });
 });
 
@@ -187,7 +187,7 @@ States:
     TimeoutSecondsPath: $.timeout
     End: true
 `);
-    assert.ok(hasError(errs, 'TimeoutSeconds et TimeoutSecondsPath sont mutuellement exclusifs'));
+    assert.ok(hasError(errs, 'TimeoutSeconds and TimeoutSecondsPath are mutually exclusive'));
   });
 });
 
@@ -205,7 +205,7 @@ States:
     HeartbeatSeconds: 30
     End: true
 `);
-    assert.ok(hasError(errs, 'inférieur à TimeoutSeconds'));
+    assert.ok(hasError(errs, 'less than TimeoutSeconds'));
   });
 });
 
@@ -222,7 +222,7 @@ States:
     Error: MyError
     ErrorPath: $.errorField
 `);
-    assert.ok(hasError(errs, 'Error et ErrorPath sont mutuellement exclusifs'));
+    assert.ok(hasError(errs, 'Error and ErrorPath are mutually exclusive'));
   });
 });
 
@@ -235,7 +235,7 @@ StartAt: W
 States:
   W: { Type: Wait, End: true }
 `);
-    assert.ok(hasError(errs, 'aucun champ de timing'));
+    assert.ok(hasError(errs, 'no timing field'));
   });
 
   it('reports multiple timing fields', () => {
@@ -248,7 +248,7 @@ States:
     Timestamp: "2030-01-01T00:00:00Z"
     End: true
 `);
-    assert.ok(hasError(errs, 'plusieurs champs de timing'));
+    assert.ok(hasError(errs, 'multiple timing fields'));
   });
 
   it('passes with a single timing field', () => {
@@ -276,7 +276,7 @@ States:
         Next: A
     End: true
 `);
-    assert.ok(hasError(errs, 'States.ALL" avec d\'autres erreurs'));
+    assert.ok(hasError(errs, 'States.ALL" with other errors'));
   });
 
   it('reports States.ALL not last', () => {
@@ -293,7 +293,7 @@ States:
         Next: A
     End: true
 `);
-    assert.ok(hasError(errs, 'doit être le dernier catcheur'));
+    assert.ok(hasError(errs, 'must be the last handler'));
   });
 });
 
@@ -312,7 +312,7 @@ States:
         Next: A
     End: true
 `);
-    assert.ok(hasError(errs, 'ErrorEquals est vide'));
+    assert.ok(hasError(errs, 'ErrorEquals is empty'));
   });
 });
 
@@ -332,7 +332,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'entre 0 et 100'));
+    assert.ok(hasError(errs, 'between 0 and 100'));
   });
 });
 
@@ -346,7 +346,7 @@ States:
   A: { Type: Task, Resource: arn, End: true }
   Orphan: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, '"Orphan" est inaccessible'));
+    assert.ok(hasError(errs, '"Orphan" is unreachable'));
   });
 });
 
@@ -400,7 +400,7 @@ States:
       foo: bar
     End: true
 `);
-    assert.ok(hasError(errs, '"Parameters" est un champ JSONPath'));
+    assert.ok(hasError(errs, '"Parameters" is a JSONPath field'));
   });
 
   it('reports Arguments in JSONPath mode', () => {
@@ -414,7 +414,7 @@ States:
       foo: bar
     End: true
 `);
-    assert.ok(hasError(errs, '"Arguments" est un champ JSONata'));
+    assert.ok(hasError(errs, '"Arguments" is a JSONata field'));
   });
 });
 
@@ -433,7 +433,7 @@ States:
       x: "{%  %}"
     End: true
 `);
-    assert.ok(hasError(errs, 'vide'));
+    assert.ok(hasError(errs, 'empty'));
   });
 
   it('reports $eval() usage', () => {
@@ -478,7 +478,7 @@ States:
       x: "{% foo( %}"
     End: true
 `);
-    assert.ok(hasError(errs, 'parenthèse'));
+    assert.ok(hasError(errs, 'parenthesis'));
   });
 });
 
@@ -519,7 +519,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'ExecutionType est requis en mode DISTRIBUTED'));
+    assert.ok(hasError(errs, 'ExecutionType is required in DISTRIBUTED mode'));
   });
 
   it('warns when ExecutionType set in INLINE mode', () => {
@@ -537,7 +537,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'ignoré en mode INLINE'));
+    assert.ok(hasError(errs, 'ignored in INLINE mode'));
   });
 
   it('errors when INLINE MaxConcurrency > 40', () => {
@@ -555,7 +555,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'limité à 40'));
+    assert.ok(hasError(errs, 'limited to 40'));
   });
 
   it('reports waitForTaskToken in EXPRESS children', () => {
@@ -576,7 +576,7 @@ States:
           End: true
     End: true
 `);
-    assert.ok(hasError(errs, 'EXPRESS ne supportent pas .waitForTaskToken'));
+    assert.ok(hasError(errs, 'EXPRESS child executions do not support .waitForTaskToken'));
   });
 });
 
@@ -595,7 +595,7 @@ States:
         BackoffRate: 0.5
     End: true
 `);
-    assert.ok(hasError(errs, 'BackoffRate doit être ≥ 1.0'));
+    assert.ok(hasError(errs, 'BackoffRate must be ≥ 1.0'));
   });
 });
 
@@ -614,7 +614,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"Iterator" est déprécié'));
+    assert.ok(hasError(errs, '"Iterator" is deprecated'));
   });
 });
 
@@ -632,7 +632,7 @@ States:
         States:
           A: { Type: Task, Resource: arn:aws:states:::lambda:invoke, End: true }
 `);
-    assert.ok(hasError(errs, '"P" (Parallel): ni "Next" ni "End"'));
+    assert.ok(hasError(errs, '"P" (Parallel): neither "Next" nor "End"'));
   });
 
   it('reports Map without Next or End', () => {
@@ -646,7 +646,7 @@ States:
       States:
         C: { Type: Task, Resource: arn:aws:states:::lambda:invoke, End: true }
 `);
-    assert.ok(hasError(errs, '"M" (Map): ni "Next" ni "End"'));
+    assert.ok(hasError(errs, '"M" (Map): neither "Next" nor "End"'));
   });
 
   it('passes when Parallel has End', () => {
@@ -661,7 +661,7 @@ States:
           A: { Type: Task, Resource: arn:aws:states:::lambda:invoke, End: true }
     End: true
 `);
-    assert.ok(!hasError(errs, '(Parallel): ni "Next" ni "End"'));
+    assert.ok(!hasError(errs, '(Parallel): neither "Next" nor "End"'));
   });
 });
 
@@ -679,7 +679,7 @@ States:
           A: { Type: Task, Resource: arn:aws:states:::lambda:invoke, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'Branches[0] invalide'));
+    assert.ok(hasError(errs, 'Branches[0] is not valid'));
   });
 
   it('reports branch missing States', () => {
@@ -692,7 +692,7 @@ States:
       - StartAt: A
     End: true
 `);
-    assert.ok(hasError(errs, 'Branches[0] invalide'));
+    assert.ok(hasError(errs, 'Branches[0] is not valid'));
   });
 
   it('propagates lint errors from inside a branch', () => {
@@ -722,7 +722,7 @@ States:
     Type: Map
     End: true
 `);
-    assert.ok(hasError(errs, 'aucun Iterator ou ItemProcessor'));
+    assert.ok(hasError(errs, 'no Iterator or ItemProcessor'));
   });
 
   it('reports iterator missing StartAt', () => {
@@ -736,7 +736,7 @@ States:
         C: { Type: Task, Resource: arn:aws:states:::lambda:invoke, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'Iterator invalide'));
+    assert.ok(hasError(errs, 'Iterator is not valid'));
   });
 
   it('propagates lint errors from inside an iterator', () => {
@@ -769,7 +769,7 @@ States:
     ResultPath: null
     End: true
 `);
-    assert.ok(hasError(errs, 'ResultPath est null'));
+    assert.ok(hasError(errs, 'ResultPath is null'));
   });
 
   it('warns when Result and Parameters are both set', () => {
@@ -784,7 +784,7 @@ States:
       baz: qux
     End: true
 `);
-    assert.ok(hasError(errs, 'Result et Parameters sont mutuellement exclusifs'));
+    assert.ok(hasError(errs, 'Result and Parameters are mutually exclusive'));
   });
 
   it('passes when only Result is set', () => {
@@ -797,8 +797,8 @@ States:
       foo: bar
     End: true
 `);
-    assert.ok(!hasError(errs, 'ResultPath est null'));
-    assert.ok(!hasError(errs, 'mutuellement exclusifs'));
+    assert.ok(!hasError(errs, 'ResultPath is null'));
+    assert.ok(!hasError(errs, 'mutually exclusive'));
   });
 });
 
@@ -855,7 +855,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ItemsPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"ItemsPath" is JSONPath-only'));
   });
 
   it('reports Items in JSONPath mode', () => {
@@ -873,7 +873,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"Items" est un champ JSONata'));
+    assert.ok(hasError(errs, '"Items" is a JSONata field'));
   });
 });
 
@@ -894,7 +894,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'MaxConcurrency et MaxConcurrencyPath sont mutuellement exclusifs'));
+    assert.ok(hasError(errs, 'MaxConcurrency and MaxConcurrencyPath are mutually exclusive'));
   });
 
   it('reports ToleratedFailureCount + ToleratedFailureCountPath', () => {
@@ -911,7 +911,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'ToleratedFailureCount et ToleratedFailureCountPath sont mutuellement exclusifs'));
+    assert.ok(hasError(errs, 'ToleratedFailureCount and ToleratedFailureCountPath are mutually exclusive'));
   });
 });
 
@@ -925,7 +925,7 @@ StartAt: ${longName}
 States:
   ${longName}: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, 'nom d\'état trop long'));
+    assert.ok(hasError(errs, 'state name is too long'));
   });
 
   it('passes for name exactly 80 chars', () => {
@@ -935,7 +935,7 @@ StartAt: ${name}
 States:
   ${name}: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(!hasError(errs, 'nom d\'état trop long'));
+    assert.ok(!hasError(errs, 'state name is too long'));
   });
 });
 
@@ -949,7 +949,7 @@ States:
   A: { Type: Task, Resource: arn, Next: "B<C" }
   "B<C": { Type: Succeed }
 `);
-    assert.ok(hasError(errs, 'caractères interdits'));
+    assert.ok(hasError(errs, 'forbidden characters'));
   });
 });
 
@@ -970,7 +970,7 @@ States:
     Default: B
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"Variable" (JSONPath) — en mode JSONata utilisez "Condition"'));
+    assert.ok(hasError(errs, '"Variable" (JSONPath) — in JSONata mode use "Condition"'));
   });
 
   it('reports Condition without {%...%} delimiters', () => {
@@ -1001,7 +1001,7 @@ States:
     Default: B
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"Condition" (JSONata) — en mode JSONPath utilisez "Variable"'));
+    assert.ok(hasError(errs, '"Condition" (JSONata) — in JSONPath mode use "Variable"'));
   });
 });
 
@@ -1020,7 +1020,7 @@ States:
       foo.$: $.bar
     End: true
 `);
-    assert.ok(hasError(errs, '"ResultSelector" est un champ JSONPath'));
+    assert.ok(hasError(errs, '"ResultSelector" is a JSONPath field'));
   });
 });
 
@@ -1038,7 +1038,7 @@ States:
     TimeoutSecondsPath: $.timeout
     End: true
 `);
-    assert.ok(hasError(errs, '"TimeoutSecondsPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"TimeoutSecondsPath" is JSONPath-only'));
   });
 
   it('reports HeartbeatSecondsPath in JSONata mode', () => {
@@ -1052,7 +1052,7 @@ States:
     HeartbeatSecondsPath: $.heartbeat
     End: true
 `);
-    assert.ok(hasError(errs, '"HeartbeatSecondsPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"HeartbeatSecondsPath" is JSONPath-only'));
   });
 });
 
@@ -1069,7 +1069,7 @@ States:
     SecondsPath: $.delay
     End: true
 `);
-    assert.ok(hasError(errs, '"SecondsPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"SecondsPath" is JSONPath-only'));
   });
 
   it('reports TimestampPath in JSONata mode', () => {
@@ -1082,7 +1082,7 @@ States:
     TimestampPath: $.ts
     End: true
 `);
-    assert.ok(hasError(errs, '"TimestampPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"TimestampPath" is JSONPath-only'));
   });
 });
 
@@ -1155,7 +1155,7 @@ States:
     Resource: lambda:invoke
     End: true
 `);
-    assert.ok(hasError(errs, 'n\'est pas un ARN valide'));
+    assert.ok(hasError(errs, 'is not a valid ARN'));
   });
 
   it('passes for a valid optimised integration ARN', () => {
@@ -1167,7 +1167,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke
     End: true
 `);
-    assert.ok(!hasError(errs, 'n\'est pas un ARN valide'));
+    assert.ok(!hasError(errs, 'is not a valid ARN'));
   });
 
   it('passes for a direct Lambda ARN', () => {
@@ -1179,7 +1179,7 @@ States:
     Resource: arn:aws:lambda:us-east-1:123456789012:function:myFn
     End: true
 `);
-    assert.ok(!hasError(errs, 'n\'est pas un ARN valide'));
+    assert.ok(!hasError(errs, 'is not a valid ARN'));
   });
 
   it('passes for a GovCloud ARN (arn:aws-us-gov:)', () => {
@@ -1191,7 +1191,7 @@ States:
     Resource: arn:aws-us-gov:states:::lambda:invoke
     End: true
 `);
-    assert.ok(!hasError(errs, 'n\'est pas un ARN valide'));
+    assert.ok(!hasError(errs, 'is not a valid ARN'));
   });
 
   it('passes for a China region ARN (arn:aws-cn:)', () => {
@@ -1203,7 +1203,7 @@ States:
     Resource: arn:aws-cn:states:::lambda:invoke
     End: true
 `);
-    assert.ok(!hasError(errs, 'n\'est pas un ARN valide'));
+    assert.ok(!hasError(errs, 'is not a valid ARN'));
   });
 });
 
@@ -1219,7 +1219,7 @@ States:
     Resource: arn:aws:states:::sqs:sendMessage.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"sqs" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "sqs" does not support ".sync"'));
   });
 
   it('reports .sync on SNS', () => {
@@ -1231,7 +1231,7 @@ States:
     Resource: arn:aws:states:::sns:publish.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"sns" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "sns" does not support ".sync"'));
   });
 
   it('reports .sync on DynamoDB', () => {
@@ -1243,7 +1243,7 @@ States:
     Resource: arn:aws:states:::dynamodb:putItem.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"dynamodb" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "dynamodb" does not support ".sync"'));
   });
 
   it('reports .sync on HTTP Task', () => {
@@ -1255,7 +1255,7 @@ States:
     Resource: arn:aws:states:::http:invoke.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"http" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "http" does not support ".sync"'));
   });
 
   it('warns that .sync requires Standard workflow', () => {
@@ -1267,7 +1267,7 @@ States:
     Resource: arn:aws:states:::ecs:runTask.sync
     End: true
 `);
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 
   it('warns that .sync:2 requires Standard workflow', () => {
@@ -1279,7 +1279,7 @@ States:
     Resource: arn:aws:states:::ecs:runTask.sync:2
     End: true
 `);
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 
   it('does not warn for fire-and-forget Lambda integration', () => {
@@ -1291,8 +1291,8 @@ States:
     Resource: arn:aws:states:::lambda:invoke
     End: true
 `);
-    assert.ok(!hasError(errs, 'ne supporte pas'));
-    assert.ok(!hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'does not support'));
+    assert.ok(!hasError(errs, 'requires a Standard workflow'));
   });
 });
 
@@ -1306,7 +1306,7 @@ States:
     Resource: arn:aws:states:::dynamodb:putItem.waitForTaskToken
     End: true
 `);
-    assert.ok(hasError(errs, '"dynamodb" ne supporte pas ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'service "dynamodb" does not support ".waitForTaskToken"'));
   });
 
   it('reports .waitForTaskToken on Athena', () => {
@@ -1318,7 +1318,7 @@ States:
     Resource: arn:aws:states:::athena:startQueryExecution.waitForTaskToken
     End: true
 `);
-    assert.ok(hasError(errs, '"athena" ne supporte pas ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'service "athena" does not support ".waitForTaskToken"'));
   });
 
   it('passes .waitForTaskToken on Lambda (warns Standard workflow)', () => {
@@ -1330,8 +1330,8 @@ States:
     Resource: arn:aws:states:::lambda:invoke.waitForTaskToken
     End: true
 `);
-    assert.ok(!hasError(errs, 'ne supporte pas ".waitForTaskToken"'));
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'does not support ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 
   it('passes .waitForTaskToken on SQS (warns Standard workflow)', () => {
@@ -1343,8 +1343,8 @@ States:
     Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
     End: true
 `);
-    assert.ok(!hasError(errs, 'ne supporte pas ".waitForTaskToken"'));
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'does not support ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 
   it('passes .waitForTaskToken on SNS (warns Standard workflow)', () => {
@@ -1356,8 +1356,8 @@ States:
     Resource: arn:aws:states:::sns:publish.waitForTaskToken
     End: true
 `);
-    assert.ok(!hasError(errs, 'ne supporte pas ".waitForTaskToken"'));
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'does not support ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 
   it('passes .waitForTaskToken on EventBridge (warns Standard workflow)', () => {
@@ -1369,8 +1369,8 @@ States:
     Resource: arn:aws:states:::events:putEvents.waitForTaskToken
     End: true
 `);
-    assert.ok(!hasError(errs, 'ne supporte pas ".waitForTaskToken"'));
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'does not support ".waitForTaskToken"'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 });
 
@@ -1402,7 +1402,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"lambda" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "lambda" does not support ".sync"'));
   });
 
   it('reports .sync on API Gateway', () => {
@@ -1414,7 +1414,7 @@ States:
     Resource: arn:aws:states:::apigateway:invoke.sync
     End: true
 `);
-    assert.ok(hasError(errs, '"apigateway" ne supporte pas ".sync"'));
+    assert.ok(hasError(errs, 'service "apigateway" does not support ".sync"'));
   });
 
   it('does NOT warn Standard workflow for lambda .sync (already an error)', () => {
@@ -1426,7 +1426,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke.sync
     End: true
 `);
-    assert.ok(!hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(!hasError(errs, 'requires a Standard workflow'));
   });
 });
 
@@ -1447,10 +1447,10 @@ States:
     End: true
   B: { Type: Fail }
 `);
-    assert.ok(!hasError(errs, '"events" ne supporte pas ".waitForTaskToken"'));
-    assert.ok(!hasError(errs, '"eventbridge" ne supporte pas ".waitForTaskToken"'));
+    assert.ok(!hasError(errs, '"events" does not support ".waitForTaskToken"'));
+    assert.ok(!hasError(errs, '"eventbridge" does not support ".waitForTaskToken"'));
     // Does warn about Standard workflow requirement
-    assert.ok(hasError(errs, 'nécessite un workflow Standard'));
+    assert.ok(hasError(errs, 'requires a Standard workflow'));
   });
 });
 
@@ -1470,7 +1470,7 @@ States:
         ConnectionArn: arn:aws:events:us-east-1:123:connection/my-conn
     End: true
 `);
-    assert.ok(hasError(errs, '"ApiEndpoint" est requis'));
+    assert.ok(hasError(errs, '"ApiEndpoint" is required'));
   });
 
   it('reports missing Method', () => {
@@ -1486,7 +1486,7 @@ States:
         ConnectionArn: arn:aws:events:us-east-1:123:connection/my-conn
     End: true
 `);
-    assert.ok(hasError(errs, '"Method" est requis'));
+    assert.ok(hasError(errs, '"Method" is required'));
   });
 
   it('warns when Authentication.ConnectionArn is missing', () => {
@@ -1518,8 +1518,8 @@ States:
         ConnectionArn: arn:aws:events:us-east-1:123:connection/my-conn
     End: true
 `);
-    assert.ok(!hasError(errs, '"ApiEndpoint" est requis'));
-    assert.ok(!hasError(errs, '"Method" est requis'));
+    assert.ok(!hasError(errs, '"ApiEndpoint" is required'));
+    assert.ok(!hasError(errs, '"Method" is required'));
     assert.ok(!hasError(errs, 'Authentication.ConnectionArn'));
   });
 });
@@ -1571,7 +1571,7 @@ States:
     TimeoutSeconds: 0
     End: true
 `);
-    assert.ok(hasError(errs, 'TimeoutSeconds doit être un entier positif'));
+    assert.ok(hasError(errs, 'TimeoutSeconds must be a positive integer'));
   });
 
   it('passes for TimeoutSeconds: 1', () => {
@@ -1584,7 +1584,7 @@ States:
     TimeoutSeconds: 1
     End: true
 `);
-    assert.ok(!hasError(errs, 'TimeoutSeconds doit être un entier positif'));
+    assert.ok(!hasError(errs, 'TimeoutSeconds must be a positive integer'));
   });
 });
 
@@ -1602,7 +1602,7 @@ States:
     TimeoutSeconds: 30
     End: true
 `);
-    assert.ok(hasError(errs, 'HeartbeatSeconds doit être un entier positif'));
+    assert.ok(hasError(errs, 'HeartbeatSeconds must be a positive integer'));
   });
 });
 
@@ -1621,7 +1621,7 @@ States:
         IntervalSeconds: 0
     End: true
 `);
-    assert.ok(hasError(errs, 'IntervalSeconds doit être ≥ 1'));
+    assert.ok(hasError(errs, 'IntervalSeconds must be ≥ 1'));
   });
 
   it('passes for IntervalSeconds: 1', () => {
@@ -1652,7 +1652,7 @@ States:
     Type: Succeed
     Next: A
 `);
-    assert.ok(hasError(errs, '"Next" n\'est pas autorisé sur un état terminal'));
+    assert.ok(hasError(errs, '"Next" is not allowed on a terminal state'));
   });
 
   it('reports Next on Fail', () => {
@@ -1664,7 +1664,7 @@ States:
     Type: Fail
     Next: A
 `);
-    assert.ok(hasError(errs, '"Next" n\'est pas autorisé sur un état terminal'));
+    assert.ok(hasError(errs, '"Next" is not allowed on a terminal state'));
   });
 });
 
@@ -1680,7 +1680,7 @@ States:
     Type: Succeed
     End: true
 `);
-    assert.ok(hasError(errs, '"End" est implicite et redondant'));
+    assert.ok(hasError(errs, '"End" is implicit and redundant'));
   });
 });
 
@@ -1702,7 +1702,7 @@ States:
     Default: B
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"Retry" n\'est pas autorisé sur un état Choice'));
+    assert.ok(hasError(errs, '"Retry" is not allowed on a Choice state'));
   });
 
   it('reports Catch on Choice', () => {
@@ -1721,11 +1721,11 @@ States:
     Default: B
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"Catch" n\'est pas autorisé sur un état Choice'));
+    assert.ok(hasError(errs, '"Catch" is not allowed on a Choice state'));
   });
 });
 
-// ── Map Parameters déprécié ──────────────────────────────────────────────────
+// ── Map Parameters deprecated ──────────────────────────────────────────────────
 
 describe('Map.Parameters deprecated — use ItemSelector', () => {
   it('warns when Parameters is used in Map without ItemSelector', () => {
@@ -1742,7 +1742,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"Parameters" est déprécié dans Map'));
+    assert.ok(hasError(errs, '"Parameters" is deprecated in Map'));
   });
 
   it('does not warn when ItemSelector is used', () => {
@@ -1759,7 +1759,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(!hasError(errs, 'déprécié dans Map'));
+    assert.ok(!hasError(errs, 'deprecated in Map'));
   });
 });
 
@@ -1775,7 +1775,7 @@ States:
     Resource: arn:aws:states:us-east-1:123456789012:activity:myActivity
     End: true
 `);
-    assert.ok(hasError(errs, 'Activities ne sont pas supportées dans les workflows Express'));
+    assert.ok(hasError(errs, 'Activities are not supported in Express workflows'));
   });
 
   it('does not warn for optimized integration ARN', () => {
@@ -1809,11 +1809,11 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'mode DISTRIBUTED nécessite un workflow Standard'));
+    assert.ok(hasError(errs, 'DISTRIBUTED mode requires a Standard workflow'));
   });
 });
 
-// ── HTTP Task Method enum invalide ────────────────────────────────────────────
+// ── HTTP Task Method enum validation ────────────────────────────────────────────
 
 describe('HTTP Task Method enum validation', () => {
   it('reports invalid Method value', () => {
@@ -1830,7 +1830,7 @@ States:
         ConnectionArn: arn:aws:events:us-east-1:123:connection/c
     End: true
 `);
-    assert.ok(hasError(errs, 'méthode HTTP invalide "CONNECT"'));
+    assert.ok(hasError(errs, 'invalid HTTP method "CONNECT"'));
   });
 
   it('passes for valid Method: DELETE', () => {
@@ -1847,7 +1847,7 @@ States:
         ConnectionArn: arn:aws:events:us-east-1:123:connection/c
     End: true
 `);
-    assert.ok(!hasError(errs, 'méthode HTTP invalide'));
+    assert.ok(!hasError(errs, 'invalid HTTP method'));
   });
 });
 
@@ -1863,7 +1863,7 @@ States:
     Seconds: -1
     End: true
 `);
-    assert.ok(hasError(errs, 'Seconds (-1) hors plage'));
+    assert.ok(hasError(errs, 'Seconds (-1) out of range'));
   });
 
   it('reports Seconds > 99999999', () => {
@@ -1875,7 +1875,7 @@ States:
     Seconds: 100000000
     End: true
 `);
-    assert.ok(hasError(errs, 'hors plage'));
+    assert.ok(hasError(errs, 'out of range'));
   });
 
   it('passes for Seconds: 0', () => {
@@ -1887,7 +1887,7 @@ States:
     Seconds: 0
     End: true
 `);
-    assert.ok(!hasError(errs, 'hors plage'));
+    assert.ok(!hasError(errs, 'out of range'));
   });
 });
 
@@ -2038,7 +2038,7 @@ States:
       merged.$: "States.JsonMerge($.a, $.b, true)"
     End: true
 `);
-    assert.ok(hasError(errs, 'States.JsonMerge') && hasError(errs, '3ème argument'));
+    assert.ok(hasError(errs, 'States.JsonMerge') && hasError(errs, '3rd argument'));
   });
 
   it('passes for third arg false', () => {
@@ -2068,7 +2068,7 @@ States:
     TimeoutSeconds: 100000000
     End: true
 `);
-    assert.ok(hasError(errs, 'dépasse la limite maximale de 99999999'));
+    assert.ok(hasError(errs, 'exceeds the maximum limit of 99999999'));
   });
 
   it('passes for TimeoutSeconds: 99999999', () => {
@@ -2081,7 +2081,7 @@ States:
     TimeoutSeconds: 99999999
     End: true
 `);
-    assert.ok(!hasError(errs, 'dépasse la limite'));
+    assert.ok(!hasError(errs, 'exceeds the maximum limit'));
   });
 });
 
@@ -2099,7 +2099,7 @@ States:
     TimeoutSeconds: 99999999
     End: true
 `);
-    assert.ok(hasError(errs, 'HeartbeatSeconds (100000000) dépasse la limite'));
+    assert.ok(hasError(errs, 'HeartbeatSeconds (100000000) exceeds the maximum limit'));
   });
 });
 
@@ -2118,7 +2118,7 @@ States:
         MaxDelaySeconds: 0
     End: true
 `);
-    assert.ok(hasError(errs, 'MaxDelaySeconds doit être entre 1 et 31622400'));
+    assert.ok(hasError(errs, 'MaxDelaySeconds must be between 1 and 31622400'));
   });
 
   it('reports MaxDelaySeconds > 31622400', () => {
@@ -2133,7 +2133,7 @@ States:
         MaxDelaySeconds: 31622401
     End: true
 `);
-    assert.ok(hasError(errs, 'MaxDelaySeconds doit être entre 1 et 31622400'));
+    assert.ok(hasError(errs, 'MaxDelaySeconds must be between 1 and 31622400'));
   });
 
   it('passes for MaxDelaySeconds: 1', () => {
@@ -2167,7 +2167,7 @@ States:
         MaxAttempts: -1
     End: true
 `);
-    assert.ok(hasError(errs, 'MaxAttempts doit être ≥ 0'));
+    assert.ok(hasError(errs, 'MaxAttempts must be ≥ 0'));
   });
 
   it('passes for MaxAttempts: 0', () => {
@@ -2201,7 +2201,7 @@ States:
         JitterStrategy: RANDOM
     End: true
 `);
-    assert.ok(hasError(errs, 'JitterStrategy invalide "RANDOM"'));
+    assert.ok(hasError(errs, 'JitterStrategy "RANDOM" is not valid'));
   });
 
   it('passes for JitterStrategy: FULL', () => {
@@ -2327,7 +2327,7 @@ States:
     Type: Task
     End: true
 `);
-    assert.ok(hasError(errs, '"Resource" est requis'));
+    assert.ok(hasError(errs, '"Resource" is required'));
   });
 
   it('passes when Resource is present', () => {
@@ -2339,7 +2339,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke
     End: true
 `);
-    assert.ok(!hasError(errs, '"Resource" est requis'));
+    assert.ok(!hasError(errs, '"Resource" is required'));
   });
 });
 
@@ -2360,7 +2360,7 @@ States:
     End: true
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"End" n\'est pas autorisé sur un état Choice'));
+    assert.ok(hasError(errs, '"End" is not allowed on a Choice state'));
   });
 
   it('reports Next on Choice', () => {
@@ -2377,7 +2377,7 @@ States:
     Next: B
   B: { Type: Succeed }
 `);
-    assert.ok(hasError(errs, '"Next" n\'est pas autorisé'));
+    assert.ok(hasError(errs, '"Next" is not allowed'));
   });
 });
 
@@ -2395,7 +2395,7 @@ States:
       myVar: hello
     End: true
 `);
-    assert.ok(hasError(errs, '"Assign" est un champ JSONata'));
+    assert.ok(hasError(errs, '"Assign" is a JSONata field'));
   });
 
   it('does not warn when Assign is used in JSONata mode', () => {
@@ -2410,7 +2410,7 @@ States:
       myVar: hello
     End: true
 `);
-    assert.ok(!hasError(errs, '"Assign" est un champ JSONata'));
+    assert.ok(!hasError(errs, '"Assign" is a JSONata field'));
   });
 });
 
@@ -2426,7 +2426,7 @@ States:
     Type: Fail
     ErrorPath: $.errorCode
 `);
-    assert.ok(hasError(errs, '"ErrorPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"ErrorPath" is JSONPath-only'));
   });
 
   it('reports CausePath in JSONata mode', () => {
@@ -2438,7 +2438,7 @@ States:
     Type: Fail
     CausePath: $.cause
 `);
-    assert.ok(hasError(errs, '"CausePath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"CausePath" is JSONPath-only'));
   });
 });
 
@@ -2459,7 +2459,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"MaxConcurrencyPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"MaxConcurrencyPath" is JSONPath-only'));
   });
 });
 
@@ -2480,7 +2480,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ToleratedFailureCountPath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"ToleratedFailureCountPath" is JSONPath-only'));
   });
 
   it('reports ToleratedFailurePercentagePath in JSONata mode', () => {
@@ -2497,7 +2497,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ToleratedFailurePercentagePath" est JSONPath uniquement'));
+    assert.ok(hasError(errs, '"ToleratedFailurePercentagePath" is JSONPath-only'));
   });
 });
 
@@ -2518,7 +2518,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ItemBatcher" est réservé aux Maps DISTRIBUTED'));
+    assert.ok(hasError(errs, '"ItemBatcher" is reserved for DISTRIBUTED Maps'));
   });
 
   it('warns ItemReader on INLINE Map', () => {
@@ -2535,7 +2535,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ItemReader" est réservé aux Maps DISTRIBUTED'));
+    assert.ok(hasError(errs, '"ItemReader" is reserved for DISTRIBUTED Maps'));
   });
 
   it('warns ResultWriter on INLINE Map', () => {
@@ -2552,7 +2552,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, '"ResultWriter" est réservé aux Maps DISTRIBUTED'));
+    assert.ok(hasError(errs, '"ResultWriter" is reserved for DISTRIBUTED Maps'));
   });
 
   it('does not warn ItemBatcher on DISTRIBUTED Map', () => {
@@ -2572,7 +2572,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(!hasError(errs, '"ItemBatcher" est réservé'));
+    assert.ok(!hasError(errs, '"ItemBatcher" is reserved'));
   });
 });
 
@@ -2586,7 +2586,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, 'Version "2.0" invalide'));
+    assert.ok(hasError(errs, 'Version "2.0" is not valid'));
   });
 
   it('passes when Version is absent', () => {
@@ -2625,7 +2625,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(hasError(errs, 'Label est ignoré en mode INLINE'));
+    assert.ok(hasError(errs, 'Label is ignored in INLINE mode'));
   });
 
   it('does not warn when Label is set on DISTRIBUTED Map', () => {
@@ -2644,7 +2644,7 @@ States:
         C: { Type: Task, Resource: arn, End: true }
     End: true
 `);
-    assert.ok(!hasError(errs, 'Label est ignoré en mode INLINE'));
+    assert.ok(!hasError(errs, 'Label is ignored in INLINE mode'));
   });
 });
 
@@ -2658,7 +2658,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, 'QueryLanguage "JSONPath2" invalide'));
+    assert.ok(hasError(errs, 'QueryLanguage "JSONPath2" is not valid'));
   });
 
   it('passes for QueryLanguage: JSONata', () => {
@@ -2691,7 +2691,7 @@ States:
     QueryLanguage: SPARQL
     End: true
 `);
-    assert.ok(hasError(errs, 'QueryLanguage "SPARQL" invalide'));
+    assert.ok(hasError(errs, 'QueryLanguage "SPARQL" is not valid'));
   });
 });
 
@@ -2705,7 +2705,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, 'TimeoutSeconds global (0) invalide'));
+    assert.ok(hasError(errs, 'global TimeoutSeconds (0) is not valid'));
   });
 
   it('reports TimeoutSeconds > 99999999 at definition level', () => {
@@ -2715,7 +2715,7 @@ StartAt: A
 States:
   A: { Type: Task, Resource: arn, End: true }
 `);
-    assert.ok(hasError(errs, 'TimeoutSeconds global (100000000) invalide'));
+    assert.ok(hasError(errs, 'global TimeoutSeconds (100000000) is not valid'));
   });
 
   it('passes for TimeoutSeconds: 3600', () => {
@@ -2744,7 +2744,7 @@ States:
         IntervalSeconds: 100000000
     End: true
 `);
-    assert.ok(hasError(errs, 'IntervalSeconds (100000000) dépasse la limite maximale'));
+    assert.ok(hasError(errs, 'IntervalSeconds (100000000) exceeds the maximum limit'));
   });
 
   it('passes for IntervalSeconds: 99999999', () => {
@@ -2759,7 +2759,7 @@ States:
         IntervalSeconds: 99999999
     End: true
 `);
-    assert.ok(!hasError(errs, 'dépasse la limite maximale'));
+    assert.ok(!hasError(errs, 'exceeds the maximum limit'));
   });
 });
 

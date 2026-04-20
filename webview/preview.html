@@ -113,6 +113,20 @@
   <div id="hint">Scroll to zoom · Drag to pan · Click node to jump{{HINT_SUBGRAPHS}}</div>
 
   <script>
+    // ── Fatal error fallback ──────────────────────────────────────────────
+    function showFatalError(err) {
+      const detail = String(err) +
+        '\n\nTry reloading the window (Ctrl+Shift+P → "Reload Window").\n' +
+        'If the problem persists, please open an issue at:\n' +
+        'github.com/almekpoh/aws-steplens/issues';
+      document.getElementById('graph-area').innerHTML =
+        '<div style="padding:24px;color:#f44336;font-family:monospace;font-size:12px;white-space:pre-wrap">' +
+        '<strong>StepLens — graph rendering error</strong>\n\n' + detail + '</div>';
+    }
+    window.onerror = (_msg, _src, _line, _col, err) => { showFatalError(err || _msg); return true; };
+
+    try {
+
     const vscode = acquireVsCodeApi();
     const TABS        = {{TABS_JSON}};
     const NODE_TO_TAB = {{NODE_TO_TAB_JSON}};
@@ -131,6 +145,7 @@
       Map:      { bg: '#2a1a3d', border: '#a78bfa', shape: 'round-rectangle' },
       START:    { bg: '#1a1a3a', border: '#9b59b6', shape: 'ellipse'         },
       END:      { bg: '#1a1a3a', border: '#9b59b6', shape: 'ellipse'         },
+      GHOST:    { bg: '#2a0000', border: '#f44336', shape: 'rectangle'       },
     };
 
     const CY_STYLE = [
@@ -164,6 +179,10 @@
       {
         selector: 'node[type="START"], node[type="END"]',
         style: { 'font-weight': 'bold', 'width': 60, 'height': 28, 'font-size': 12 }
+      },
+      {
+        selector: 'node[type="GHOST"]',
+        style: { 'border-style': 'dashed', 'border-width': 2, 'color': '#f44336', 'font-style': 'italic', 'font-size': 10 }
       },
       // Parallel/Map: dashed border to signal clickable expansion
       {
@@ -268,8 +287,9 @@
 
       // Single click → jump to state in editor (use id = state name)
       cy.on('tap', 'node', evt => {
-        const id = evt.target.data('id');
-        if (id === '__START__' || id === '__END__') return;
+        const id   = evt.target.data('id');
+        const type = evt.target.data('type');
+        if (id === '__START__' || id === '__END__' || type === 'GHOST') return;
         vscode.postMessage({ type: 'goto', state: id });
       });
 
@@ -352,8 +372,14 @@
         // Sync the navigation map in case a state was renamed
         Object.keys(NODE_TO_TAB).forEach(k => delete NODE_TO_TAB[k]);
         Object.assign(NODE_TO_TAB, msg.nodeToTab);
+
+      } else if (msg.type === 'resize') {
+        instances[activeTabId]?.resize();
+        instances[activeTabId]?.fit(undefined, 40);
       }
     });
+
+    } catch (err) { showFatalError(err); }
   </script>
 </body>
 </html>

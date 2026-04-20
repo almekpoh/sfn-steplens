@@ -8,13 +8,34 @@ const SUPPORTED_LANGUAGES = ['yaml', 'json'];
 let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+  // ── Update notification ────────────────────────────────────────────────────
+  const currentVersion = context.extension.packageJSON.version as string;
+  const previousVersion = context.globalState.get<string>('version');
+  if (previousVersion && previousVersion !== currentVersion) {
+    const [prevMaj, prevMin] = previousVersion.split('.').map(Number);
+    const [curMaj, curMin]   = currentVersion.split('.').map(Number);
+    const isMinorOrMajor = prevMaj !== curMaj || prevMin !== curMin;
+    const command = isMinorOrMajor
+      ? 'workbench.action.reloadWindow'
+      : 'workbench.action.restartExtensionHost';
+    vscode.window.showInformationMessage(
+      `StepLens updated to v${currentVersion}. Reload to apply changes.`,
+      'Reload Now'
+    ).then(action => {
+      if (action === 'Reload Now') {
+        vscode.commands.executeCommand(command);
+      }
+    });
+  }
+  context.globalState.update('version', currentVersion);
+
   const diagnostics = vscode.languages.createDiagnosticCollection('steplens');
   context.subscriptions.push(diagnostics);
 
   // ── Status bar item ────────────────────────────────────────────────────────
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBar.command = 'workbench.action.problems.focus';
-  statusBar.tooltip = 'StepLens — cliquer pour ouvrir le panneau Problèmes';
+  statusBar.tooltip = 'StepLens — click to open the Problems panel';
   context.subscriptions.push(statusBar);
 
   // ── Command: open graph preview ────────────────────────────────────────────
@@ -25,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       const parsed = AslParser.parse(editor.document.getText(), editor.document.languageId);
       if (!parsed) {
-        vscode.window.showWarningMessage('StepLens: pas de définition Step Functions détectée.');
+        vscode.window.showWarningMessage('StepLens: no Step Functions definition detected.');
         return;
       }
 
@@ -215,10 +236,10 @@ function runLint(
     const warnCount = errors.filter(e => e.severity === vscode.DiagnosticSeverity.Warning).length;
 
     if (errCount > 0) {
-      statusBar.text = `$(error) StepLens: ${errCount} erreur${errCount > 1 ? 's' : ''}`;
+      statusBar.text = `$(error) StepLens: ${errCount} error${errCount > 1 ? 's' : ''}`;
       statusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
     } else if (warnCount > 0) {
-      statusBar.text = `$(warning) StepLens: ${warnCount} alerte${warnCount > 1 ? 's' : ''}`;
+      statusBar.text = `$(warning) StepLens: ${warnCount} warning${warnCount > 1 ? 's' : ''}`;
       statusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     } else {
       statusBar.text = '$(check) StepLens';

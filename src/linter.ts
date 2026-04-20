@@ -60,7 +60,7 @@ export class AslLinter {
     // ── Version: only "1.0" is valid if present ───────────────────────────────
     if (def.Version !== undefined && def.Version !== '1.0') {
       errors.push({
-        message: `Version "${def.Version}" invalide — seule "1.0" est supportée`,
+        message: `Version "${def.Version}" is not valid — only "1.0" is accepted`,
         severity: vscode.DiagnosticSeverity.Error,
         searchKey: 'Version',
       });
@@ -69,7 +69,7 @@ export class AslLinter {
     // ── Definition-level QueryLanguage ────────────────────────────────────────
     if (def.QueryLanguage !== undefined && def.QueryLanguage !== 'JSONata' && def.QueryLanguage !== 'JSONPath') {
       errors.push({
-        message: `QueryLanguage "${def.QueryLanguage}" invalide — valeurs acceptées: "JSONata", "JSONPath"`,
+        message: `QueryLanguage "${def.QueryLanguage}" is not valid — accepted values: "JSONata", "JSONPath"`,
         severity: vscode.DiagnosticSeverity.Error,
         searchKey: 'QueryLanguage',
       });
@@ -79,7 +79,7 @@ export class AslLinter {
     if (def.TimeoutSeconds !== undefined) {
       if (def.TimeoutSeconds < 1 || def.TimeoutSeconds > 99999999) {
         errors.push({
-          message: `TimeoutSeconds global (${def.TimeoutSeconds}) invalide — doit être entre 1 et 99999999`,
+          message: `global TimeoutSeconds (${def.TimeoutSeconds}) is not valid — must be between 1 and 99999999`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: 'TimeoutSeconds',
         });
@@ -89,7 +89,7 @@ export class AslLinter {
     // ── R-1: StartAt must exist ─────────────────────────────────────────────
     if (!stateNames.has(def.StartAt)) {
       errors.push({
-        message: `StartAt "${def.StartAt}" n'existe pas dans States`,
+        message: `StartAt "${def.StartAt}" does not exist in States`,
         severity: vscode.DiagnosticSeverity.Error,
         searchKey: 'StartAt',
       });
@@ -100,7 +100,7 @@ export class AslLinter {
       // ── State-level QueryLanguage ─────────────────────────────────────────
       if (state.QueryLanguage !== undefined && state.QueryLanguage !== 'JSONata' && state.QueryLanguage !== 'JSONPath') {
         errors.push({
-          message: `"${name}": QueryLanguage "${state.QueryLanguage}" invalide — valeurs acceptées: "JSONata", "JSONPath"`,
+          message: `"${name}": QueryLanguage "${state.QueryLanguage}" is not valid — accepted values: "JSONata", "JSONPath"`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -109,7 +109,7 @@ export class AslLinter {
       // ── R-24: State name max 80 chars ────────────────────────────────────
       if (name.length > 80) {
         errors.push({
-          message: `"${name}": nom d'état trop long (${name.length} chars, max 80)`,
+          message: `"${name}": state name is too long (${name.length} chars, max 80)`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -118,7 +118,7 @@ export class AslLinter {
       // ── R-25: State name forbidden characters ────────────────────────────
       if (STATE_NAME_FORBIDDEN.test(name)) {
         errors.push({
-          message: `"${name}": nom d'état contient des caractères interdits`,
+          message: `"${name}": state name contains forbidden characters`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -127,7 +127,7 @@ export class AslLinter {
       // ── R-2: Next must point to an existing state ─────────────────────────
       if (state.Next && !stateNames.has(state.Next)) {
         errors.push({
-          message: `"${name}": Next "${state.Next}" introuvable`,
+          message: `"${name}": Next "${state.Next}" not found`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -136,9 +136,9 @@ export class AslLinter {
       // ── R-3: Non-terminal states must have Next or End ────────────────────
       const isTerminal = state.Type === 'Succeed' || state.Type === 'Fail';
       const isChoice = state.Type === 'Choice';
-      if (!isTerminal && !isChoice && !state.Next && !state.End) {
+      if (!isTerminal && !isChoice && state.Type !== 'Parallel' && state.Type !== 'Map' && !state.Next && !state.End) {
         errors.push({
-          message: `"${name}" (${state.Type}): ni "Next" ni "End" défini`,
+          message: `"${name}" (${state.Type}): neither "Next" nor "End" defined`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -147,14 +147,14 @@ export class AslLinter {
       // ── Succeed/Fail must not have Next or End ────────────────────────────
       if (isTerminal && state.Next) {
         errors.push({
-          message: `"${name}" (${state.Type}): "Next" n'est pas autorisé sur un état terminal`,
+          message: `"${name}" (${state.Type}): "Next" is not allowed on a terminal state`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (isTerminal && state.End) {
         errors.push({
-          message: `"${name}" (${state.Type}): "End" est implicite et redondant sur un état terminal`,
+          message: `"${name}" (${state.Type}): "End" is implicit and redundant on a terminal state`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -164,28 +164,28 @@ export class AslLinter {
       if (isChoice) {
         if ((state.Retry?.length ?? 0) > 0) {
           errors.push({
-            message: `"${name}" (Choice): "Retry" n'est pas autorisé sur un état Choice`,
+            message: `"${name}" (Choice): "Retry" is not allowed on a Choice state`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         }
         if ((state.Catch?.length ?? 0) > 0) {
           errors.push({
-            message: `"${name}" (Choice): "Catch" n'est pas autorisé sur un état Choice`,
+            message: `"${name}" (Choice): "Catch" is not allowed on a Choice state`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         }
         if (state.Next) {
           errors.push({
-            message: `"${name}" (Choice): "Next" n'est pas autorisé — la transition est définie par Choices[].Next et Default`,
+            message: `"${name}" (Choice): "Next" is not allowed — transitions are defined by Choices[].Next and Default`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         }
         if (state.End) {
           errors.push({
-            message: `"${name}" (Choice): "End" n'est pas autorisé sur un état Choice`,
+            message: `"${name}" (Choice): "End" is not allowed on a Choice state`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -196,7 +196,7 @@ export class AslLinter {
       state.Catch?.forEach((c, i) => {
         if (!stateNames.has(c.Next)) {
           errors.push({
-            message: `"${name}": Catch[${i}].Next "${c.Next}" introuvable`,
+            message: `"${name}": Catch[${i}].Next "${c.Next}" not found`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -205,7 +205,7 @@ export class AslLinter {
         // ── R-17: ErrorEquals must be non-empty ──────────────────────────
         if (!c.ErrorEquals || c.ErrorEquals.length === 0) {
           errors.push({
-            message: `"${name}": Catch[${i}].ErrorEquals est vide`,
+            message: `"${name}": Catch[${i}].ErrorEquals is empty`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -215,7 +215,7 @@ export class AslLinter {
         if (c.ErrorEquals?.includes('States.ALL')) {
           if (c.ErrorEquals.length > 1) {
             errors.push({
-              message: `"${name}": Catch[${i}].ErrorEquals contient "States.ALL" avec d'autres erreurs — States.ALL doit être seul`,
+              message: `"${name}": Catch[${i}].ErrorEquals contains "States.ALL" with other errors — States.ALL must be alone`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -223,7 +223,7 @@ export class AslLinter {
           const catchArr = state.Catch!;
           if (i < catchArr.length - 1) {
             errors.push({
-              message: `"${name}": Catch[${i}] avec "States.ALL" doit être le dernier catcheur`,
+              message: `"${name}": Catch[${i}] with "States.ALL" must be the last handler`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -234,7 +234,7 @@ export class AslLinter {
         c.ErrorEquals?.forEach(e => {
           if (UNCATCHABLE_ERRORS.has(e)) {
             errors.push({
-              message: `"${name}": Catch[${i}] — "${e}" ne peut pas être catchée (erreur non interceptable)`,
+              message: `"${name}": Catch[${i}] — "${e}" cannot be caught (non-catchable error)`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
@@ -246,7 +246,7 @@ export class AslLinter {
       state.Retry?.forEach((r, i) => {
         if (!r.ErrorEquals || r.ErrorEquals.length === 0) {
           errors.push({
-            message: `"${name}": Retry[${i}].ErrorEquals est vide`,
+            message: `"${name}": Retry[${i}].ErrorEquals is empty`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -254,14 +254,14 @@ export class AslLinter {
         if (r.ErrorEquals?.includes('States.ALL')) {
           if (r.ErrorEquals.length > 1) {
             errors.push({
-              message: `"${name}": Retry[${i}].ErrorEquals contient "States.ALL" avec d'autres erreurs — States.ALL doit être seul`,
+              message: `"${name}": Retry[${i}].ErrorEquals contains "States.ALL" with other errors — States.ALL must be alone`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
           }
           if (i < (state.Retry!.length - 1)) {
             errors.push({
-              message: `"${name}": Retry[${i}] avec "States.ALL" doit être le dernier retrier`,
+              message: `"${name}": Retry[${i}] with "States.ALL" must be the last entry`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -270,14 +270,14 @@ export class AslLinter {
         // IntervalSeconds minimum 1, maximum 99999999
         if (r.IntervalSeconds !== undefined && r.IntervalSeconds < 1) {
           errors.push({
-            message: `"${name}": Retry[${i}].IntervalSeconds doit être ≥ 1 (valeur: ${r.IntervalSeconds})`,
+            message: `"${name}": Retry[${i}].IntervalSeconds must be ≥ 1 (value: ${r.IntervalSeconds})`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         }
         if (r.IntervalSeconds !== undefined && r.IntervalSeconds > 99999999) {
           errors.push({
-            message: `"${name}": Retry[${i}].IntervalSeconds (${r.IntervalSeconds}) dépasse la limite maximale de 99999999`,
+            message: `"${name}": Retry[${i}].IntervalSeconds (${r.IntervalSeconds}) exceeds the maximum limit of 99999999`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -285,7 +285,7 @@ export class AslLinter {
         // BackoffRate minimum 1.0
         if (r.BackoffRate !== undefined && r.BackoffRate < 1) {
           errors.push({
-            message: `"${name}": Retry[${i}].BackoffRate doit être ≥ 1.0 (valeur: ${r.BackoffRate})`,
+            message: `"${name}": Retry[${i}].BackoffRate must be ≥ 1.0 (value: ${r.BackoffRate})`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -293,7 +293,7 @@ export class AslLinter {
         // MaxDelaySeconds range: 1 to 31622400
         if (r.MaxDelaySeconds !== undefined && (r.MaxDelaySeconds < 1 || r.MaxDelaySeconds > 31622400)) {
           errors.push({
-            message: `"${name}": Retry[${i}].MaxDelaySeconds doit être entre 1 et 31622400 (valeur: ${r.MaxDelaySeconds})`,
+            message: `"${name}": Retry[${i}].MaxDelaySeconds must be between 1 and 31622400 (value: ${r.MaxDelaySeconds})`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -301,7 +301,7 @@ export class AslLinter {
         // MaxAttempts >= 0
         if (r.MaxAttempts !== undefined && r.MaxAttempts < 0) {
           errors.push({
-            message: `"${name}": Retry[${i}].MaxAttempts doit être ≥ 0 (valeur: ${r.MaxAttempts})`,
+            message: `"${name}": Retry[${i}].MaxAttempts must be ≥ 0 (value: ${r.MaxAttempts})`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -309,7 +309,7 @@ export class AslLinter {
         // JitterStrategy must be FULL or NONE
         if (r.JitterStrategy !== undefined && r.JitterStrategy !== 'FULL' && r.JitterStrategy !== 'NONE') {
           errors.push({
-            message: `"${name}": Retry[${i}].JitterStrategy invalide "${r.JitterStrategy}" — valeurs acceptées: FULL, NONE`,
+            message: `"${name}": Retry[${i}].JitterStrategy "${r.JitterStrategy}" is not valid — accepted values: FULL, NONE`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -320,7 +320,7 @@ export class AslLinter {
       if (state.Type === 'Choice') {
         if (!state.Choices || state.Choices.length === 0) {
           errors.push({
-            message: `"${name}" (Choice): aucune branche définie`,
+            message: `"${name}" (Choice): no branches defined`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -328,13 +328,13 @@ export class AslLinter {
         state.Choices?.forEach((c, i) => {
           if (!c.Next) {
             errors.push({
-              message: `"${name}": Choices[${i}] sans "Next"`,
+              message: `"${name}": Choices[${i}] missing "Next"`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
           } else if (!stateNames.has(c.Next)) {
             errors.push({
-              message: `"${name}": Choices[${i}].Next "${c.Next}" introuvable`,
+              message: `"${name}": Choices[${i}].Next "${c.Next}" not found`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -342,7 +342,7 @@ export class AslLinter {
         });
         if (state.Default && !stateNames.has(state.Default)) {
           errors.push({
-            message: `"${name}": Default "${state.Default}" introuvable`,
+            message: `"${name}": Default "${state.Default}" not found`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -350,7 +350,7 @@ export class AslLinter {
         // ── W-2: Choice without Default ──────────────────────────────────
         if (!state.Default) {
           errors.push({
-            message: `"${name}" (Choice): aucun "Default" défini — risque de States.NoChoiceMatched à runtime`,
+            message: `"${name}" (Choice): no "Default" defined — risk of States.NoChoiceMatched at runtime`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -361,14 +361,14 @@ export class AslLinter {
       if (state.Type === 'Pass') {
         if (state.Result !== undefined && state.ResultPath === null) {
           errors.push({
-            message: `"${name}" (Pass): Result est défini mais ResultPath est null — le résultat sera ignoré (ResultPath: null signifie "ne pas merger dans l'output")`,
+            message: `"${name}" (Pass): Result is defined but ResultPath is null — the result will be discarded (ResultPath: null means "do not merge into output")`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
         }
         if (state.Parameters !== undefined && state.Result !== undefined) {
           errors.push({
-            message: `"${name}" (Pass): Result et Parameters sont mutuellement exclusifs — Parameters remplace Result si les deux sont définis`,
+            message: `"${name}" (Pass): Result and Parameters are mutually exclusive — Parameters takes precedence over Result when both are defined`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -378,7 +378,7 @@ export class AslLinter {
       // ── R-6: Parallel/Map must have End or Next ───────────────────────────
       if ((state.Type === 'Parallel' || state.Type === 'Map') && !state.Next && !state.End) {
         errors.push({
-          message: `"${name}" (${state.Type}): ni "Next" ni "End"`,
+          message: `"${name}" (${state.Type}): neither "Next" nor "End"`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -388,7 +388,7 @@ export class AslLinter {
       state.Branches?.forEach((branch, i) => {
         if (!branch.StartAt || !branch.States) {
           errors.push({
-            message: `"${name}": Branches[${i}] invalide (StartAt/States manquants)`,
+            message: `"${name}": Branches[${i}] is not valid (StartAt/States missing)`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -401,7 +401,7 @@ export class AslLinter {
       // ── Task requires Resource ────────────────────────────────────────────────
       if (state.Type === 'Task' && !state.Resource) {
         errors.push({
-          message: `"${name}" (Task): "Resource" est requis`,
+          message: `"${name}" (Task): "Resource" is required`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -414,7 +414,7 @@ export class AslLinter {
         // ── ARN-1: Resource must start with arn: ────────────────────────────
         if (!resource.startsWith('arn:')) {
           errors.push({
-            message: `"${name}": Resource "${resource}" n'est pas un ARN valide — doit commencer par "arn:"`,
+            message: `"${name}": Resource "${resource}" is not a valid ARN — must start with "arn:"`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -423,14 +423,14 @@ export class AslLinter {
         // ── ARN-2: SDK integration pattern compatibility ─────────────────────
         const sdkMatch = resource.match(SDK_SERVICE_RE);
         if (sdkMatch) {
-          const service = sdkMatch[1]; // ex: 'sqs', 'lambda', 'aws-sdk', 'http'
-          const pattern = sdkMatch[3]; // 'sync', 'sync:2', 'waitForTaskToken', ou undefined
+          const service = sdkMatch[1]; // e.g. 'sqs', 'lambda', 'aws-sdk', 'http'
+          const pattern = sdkMatch[3]; // 'sync', 'sync:2', 'waitForTaskToken', or undefined
           const isAwsSdk = service === 'aws-sdk';
 
           // aws-sdk:SERVICE:ACTION format never supports .sync / .sync:2
           if (isAwsSdk && (pattern === 'sync' || pattern === 'sync:2')) {
             errors.push({
-              message: `"${name}": les intégrations AWS SDK (aws-sdk:*) ne supportent pas le pattern ".${pattern}" — utilisez l'intégration optimisée si disponible`,
+              message: `"${name}": AWS SDK integrations (aws-sdk:*) do not support the ".${pattern}" pattern — use an optimized integration if available`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -439,7 +439,7 @@ export class AslLinter {
           // Optimized integrations: some services don't support .sync
           if (!isAwsSdk && (pattern === 'sync' || pattern === 'sync:2') && NO_SYNC_SERVICES.has(service)) {
             errors.push({
-              message: `"${name}": le service "${service}" ne supporte pas ".${pattern}" — intégration fire-and-forget uniquement`,
+              message: `"${name}": service "${service}" does not support ".${pattern}" — fire-and-forget integration only`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -448,7 +448,7 @@ export class AslLinter {
           // .sync requires Standard workflow (only when the service supports it)
           if (!isAwsSdk && (pattern === 'sync' || pattern === 'sync:2') && !NO_SYNC_SERVICES.has(service)) {
             errors.push({
-              message: `"${name}": ".${pattern}" nécessite un workflow Standard — incompatible avec les workflows Express`,
+              message: `"${name}": ".${pattern}" requires a Standard workflow — not compatible with Express workflows`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
@@ -456,7 +456,7 @@ export class AslLinter {
 
           if (pattern === 'waitForTaskToken' && NO_WAIT_FOR_TOKEN_SERVICES.has(service)) {
             errors.push({
-              message: `"${name}": le service "${service}" ne supporte pas ".waitForTaskToken"`,
+              message: `"${name}": service "${service}" does not support ".waitForTaskToken"`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -465,7 +465,7 @@ export class AslLinter {
           // .waitForTaskToken requires Standard workflow (Express only supports request-response)
           if (!isAwsSdk && pattern === 'waitForTaskToken' && !NO_WAIT_FOR_TOKEN_SERVICES.has(service)) {
             errors.push({
-              message: `"${name}": ".waitForTaskToken" nécessite un workflow Standard — incompatible avec les workflows Express`,
+              message: `"${name}": ".waitForTaskToken" requires a Standard workflow — not compatible with Express workflows`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
@@ -476,7 +476,7 @@ export class AslLinter {
             const params = (state.Parameters ?? state.Arguments ?? {}) as Record<string, unknown>;
             if (!params['ApiEndpoint'] && !params['ApiEndpoint.$']) {
               errors.push({
-                message: `"${name}" (HTTP Task): "ApiEndpoint" est requis dans Parameters/Arguments`,
+                message: `"${name}" (HTTP Task): "ApiEndpoint" is required in Parameters/Arguments`,
                 severity: vscode.DiagnosticSeverity.Error,
                 searchKey: name,
               });
@@ -484,7 +484,7 @@ export class AslLinter {
             const method = params['Method'];
             if (!method && !params['Method.$']) {
               errors.push({
-                message: `"${name}" (HTTP Task): "Method" est requis dans Parameters/Arguments`,
+                message: `"${name}" (HTTP Task): "Method" is required in Parameters/Arguments`,
                 severity: vscode.DiagnosticSeverity.Error,
                 searchKey: name,
               });
@@ -492,7 +492,7 @@ export class AslLinter {
               const VALID_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']);
               if (!VALID_METHODS.has(method.toUpperCase())) {
                 errors.push({
-                  message: `"${name}" (HTTP Task): méthode HTTP invalide "${method}" — valeurs acceptées: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD`,
+                  message: `"${name}" (HTTP Task): invalid HTTP method "${method}" — accepted values: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD`,
                   severity: vscode.DiagnosticSeverity.Error,
                   searchKey: name,
                 });
@@ -502,7 +502,7 @@ export class AslLinter {
             const invocCfg = params['InvocationConfig'] as Record<string, unknown> | undefined;
             if (!auth?.['ConnectionArn'] && !invocCfg?.['ConnectionArn']) {
               errors.push({
-                message: `"${name}" (HTTP Task): "Authentication.ConnectionArn" ou "InvocationConfig.ConnectionArn" recommandé pour les appels HTTP sécurisés`,
+                message: `"${name}" (HTTP Task): "Authentication.ConnectionArn" or "InvocationConfig.ConnectionArn" recommended for secure HTTP calls`,
                 severity: vscode.DiagnosticSeverity.Warning,
                 searchKey: name,
               });
@@ -520,7 +520,7 @@ export class AslLinter {
 
         if (!catchesHeartbeat) {
           errors.push({
-            message: `"${name}": utilise waitForTaskToken mais n'a pas de Catch pour States.HeartbeatTimeout — risque de blocage permanent`,
+            message: `"${name}": uses waitForTaskToken but has no Catch for States.HeartbeatTimeout — risk of permanent deadlock`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -528,7 +528,7 @@ export class AslLinter {
 
         if (!state.HeartbeatSeconds && !state.HeartbeatSecondsPath) {
           errors.push({
-            message: `"${name}": waitForTaskToken sans HeartbeatSeconds — l'exécution peut bloquer indéfiniment`,
+            message: `"${name}": waitForTaskToken without HeartbeatSeconds — execution may block indefinitely`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -540,13 +540,13 @@ export class AslLinter {
         const iterator = state.Iterator ?? state.ItemProcessor;
         if (!iterator) {
           errors.push({
-            message: `"${name}" (Map): aucun Iterator ou ItemProcessor défini`,
+            message: `"${name}" (Map): no Iterator or ItemProcessor defined`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         } else if (!iterator.StartAt || !iterator.States) {
           errors.push({
-            message: `"${name}": Iterator invalide (StartAt/States manquants)`,
+            message: `"${name}": Iterator is not valid (StartAt/States missing)`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -559,7 +559,7 @@ export class AslLinter {
       // ── R-10: MaxConcurrency: 0 on Map = unlimited (warning) ─────────────
       if (state.Type === 'Map' && state.MaxConcurrency === 0) {
         errors.push({
-          message: `"${name}": MaxConcurrency: 0 signifie une concurrence illimitée — vérifiez que c'est intentionnel`,
+          message: `"${name}": MaxConcurrency: 0 means unlimited concurrency — verify this is intentional`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -568,21 +568,21 @@ export class AslLinter {
       // ── R-11: TimeoutSeconds / TimeoutSecondsPath mutual exclusion ────────
       if (state.TimeoutSeconds !== undefined && state.TimeoutSecondsPath !== undefined) {
         errors.push({
-          message: `"${name}": TimeoutSeconds et TimeoutSecondsPath sont mutuellement exclusifs`,
+          message: `"${name}": TimeoutSeconds and TimeoutSecondsPath are mutually exclusive`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (state.TimeoutSeconds !== undefined && state.TimeoutSeconds <= 0) {
         errors.push({
-          message: `"${name}": TimeoutSeconds doit être un entier positif > 0 (valeur: ${state.TimeoutSeconds})`,
+          message: `"${name}": TimeoutSeconds must be a positive integer > 0 (value: ${state.TimeoutSeconds})`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (state.TimeoutSeconds !== undefined && state.TimeoutSeconds > 99999999) {
         errors.push({
-          message: `"${name}": TimeoutSeconds (${state.TimeoutSeconds}) dépasse la limite maximale de 99999999`,
+          message: `"${name}": TimeoutSeconds (${state.TimeoutSeconds}) exceeds the maximum limit of 99999999`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -591,7 +591,7 @@ export class AslLinter {
       // ── R-11 (Heartbeat): HeartbeatSeconds / HeartbeatSecondsPath ─────────
       if (state.HeartbeatSeconds !== undefined && state.HeartbeatSecondsPath !== undefined) {
         errors.push({
-          message: `"${name}": HeartbeatSeconds et HeartbeatSecondsPath sont mutuellement exclusifs`,
+          message: `"${name}": HeartbeatSeconds and HeartbeatSecondsPath are mutually exclusive`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -600,14 +600,14 @@ export class AslLinter {
       // ── R-12: HeartbeatSeconds must be < TimeoutSeconds ──────────────────
       if (state.HeartbeatSeconds !== undefined && state.HeartbeatSeconds <= 0) {
         errors.push({
-          message: `"${name}": HeartbeatSeconds doit être un entier positif > 0 (valeur: ${state.HeartbeatSeconds})`,
+          message: `"${name}": HeartbeatSeconds must be a positive integer > 0 (value: ${state.HeartbeatSeconds})`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (state.HeartbeatSeconds !== undefined && state.HeartbeatSeconds > 99999999) {
         errors.push({
-          message: `"${name}": HeartbeatSeconds (${state.HeartbeatSeconds}) dépasse la limite maximale de 99999999`,
+          message: `"${name}": HeartbeatSeconds (${state.HeartbeatSeconds}) exceeds the maximum limit of 99999999`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -615,7 +615,7 @@ export class AslLinter {
       if (state.HeartbeatSeconds !== undefined && state.TimeoutSeconds !== undefined) {
         if (state.HeartbeatSeconds >= state.TimeoutSeconds) {
           errors.push({
-            message: `"${name}": HeartbeatSeconds (${state.HeartbeatSeconds}) doit être inférieur à TimeoutSeconds (${state.TimeoutSeconds})`,
+            message: `"${name}": HeartbeatSeconds (${state.HeartbeatSeconds}) must be less than TimeoutSeconds (${state.TimeoutSeconds})`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -626,14 +626,14 @@ export class AslLinter {
       if (state.Type === 'Fail') {
         if (state.Error !== undefined && state.ErrorPath !== undefined) {
           errors.push({
-            message: `"${name}" (Fail): Error et ErrorPath sont mutuellement exclusifs`,
+            message: `"${name}" (Fail): Error and ErrorPath are mutually exclusive`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         }
         if (state.Cause !== undefined && state.CausePath !== undefined) {
           errors.push({
-            message: `"${name}" (Fail): Cause et CausePath sont mutuellement exclusifs`,
+            message: `"${name}" (Fail): Cause and CausePath are mutually exclusive`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -646,13 +646,13 @@ export class AslLinter {
           .filter(v => v !== undefined);
         if (timingFields.length === 0) {
           errors.push({
-            message: `"${name}" (Wait): aucun champ de timing — définissez Seconds, Timestamp, SecondsPath ou TimestampPath`,
+            message: `"${name}" (Wait): no timing field defined — set Seconds, Timestamp, SecondsPath, or TimestampPath`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
         } else if (timingFields.length > 1) {
           errors.push({
-            message: `"${name}" (Wait): plusieurs champs de timing définis — un seul autorisé (Seconds, Timestamp, SecondsPath ou TimestampPath)`,
+            message: `"${name}" (Wait): multiple timing fields defined — only one allowed (Seconds, Timestamp, SecondsPath, or TimestampPath)`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -660,7 +660,7 @@ export class AslLinter {
         // Seconds range: 0 to 99999999
         if (state.Seconds !== undefined && (state.Seconds < 0 || state.Seconds > 99999999)) {
           errors.push({
-            message: `"${name}" (Wait): Seconds (${state.Seconds}) hors plage — valeur entre 0 et 99999999`,
+            message: `"${name}" (Wait): Seconds (${state.Seconds}) out of range — must be between 0 and 99999999`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -668,7 +668,7 @@ export class AslLinter {
         // Timestamp must be RFC 3339 with uppercase T and uppercase Z
         if (typeof state.Timestamp === 'string' && !RFC3339_RE.test(state.Timestamp)) {
           errors.push({
-            message: `"${name}" (Wait): Timestamp "${state.Timestamp}" invalide — format RFC3339 requis avec T majuscule et Z majuscule (ex: "2024-01-15T12:00:00Z")`,
+            message: `"${name}" (Wait): Timestamp "${state.Timestamp}" is not valid — RFC3339 format required with uppercase T and Z (e.g. "2024-01-15T12:00:00Z")`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -679,7 +679,7 @@ export class AslLinter {
       if (state.ToleratedFailurePercentage !== undefined) {
         if (state.ToleratedFailurePercentage < 0 || state.ToleratedFailurePercentage > 100) {
           errors.push({
-            message: `"${name}": ToleratedFailurePercentage (${state.ToleratedFailurePercentage}) doit être entre 0 et 100`,
+            message: `"${name}": ToleratedFailurePercentage (${state.ToleratedFailurePercentage}) must be between 0 and 100`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -689,21 +689,21 @@ export class AslLinter {
       // ── R-20: MaxConcurrency / MaxConcurrencyPath mutual exclusion ────────
       if (state.MaxConcurrency !== undefined && state.MaxConcurrencyPath !== undefined) {
         errors.push({
-          message: `"${name}": MaxConcurrency et MaxConcurrencyPath sont mutuellement exclusifs`,
+          message: `"${name}": MaxConcurrency and MaxConcurrencyPath are mutually exclusive`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (state.ToleratedFailureCount !== undefined && state.ToleratedFailureCountPath !== undefined) {
         errors.push({
-          message: `"${name}": ToleratedFailureCount et ToleratedFailureCountPath sont mutuellement exclusifs`,
+          message: `"${name}": ToleratedFailureCount and ToleratedFailureCountPath are mutually exclusive`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
       }
       if (state.ToleratedFailurePercentage !== undefined && state.ToleratedFailurePercentagePath !== undefined) {
         errors.push({
-          message: `"${name}": ToleratedFailurePercentage et ToleratedFailurePercentagePath sont mutuellement exclusifs`,
+          message: `"${name}": ToleratedFailurePercentage and ToleratedFailurePercentagePath are mutually exclusive`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: name,
         });
@@ -712,7 +712,7 @@ export class AslLinter {
       // ── Deprecated Iterator warning ───────────────────────────────────────
       if (state.Type === 'Map' && state.Iterator && !state.ItemProcessor) {
         errors.push({
-          message: `"${name}": "Iterator" est déprécié — migrez vers "ItemProcessor"`,
+          message: `"${name}": "Iterator" is deprecated — migrate to "ItemProcessor"`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -721,7 +721,7 @@ export class AslLinter {
       // ── Deprecated Parameters in Map (use ItemSelector) ──────────────────
       if (state.Type === 'Map' && state.Parameters !== undefined && state.ItemSelector === undefined) {
         errors.push({
-          message: `"${name}": "Parameters" est déprécié dans Map — migrez vers "ItemSelector"`,
+          message: `"${name}": "Parameters" is deprecated in Map — migrate to "ItemSelector"`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -730,7 +730,7 @@ export class AslLinter {
       // ── Activity ARN not supported in Express Workflows ───────────────────
       if (state.Type === 'Task' && /^arn:[^:]*:states:[^:]*:[^:]*:activity:/.test(resource)) {
         errors.push({
-          message: `"${name}": les Activities ne sont pas supportées dans les workflows Express (Standard uniquement)`,
+          message: `"${name}": Activities are not supported in Express workflows (Standard only)`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -746,7 +746,7 @@ export class AslLinter {
         // DISTRIBUTED mode: Standard workflow only
         if (mode === 'DISTRIBUTED') {
           errors.push({
-            message: `"${name}": le mode DISTRIBUTED nécessite un workflow Standard — non supporté dans les workflows Express`,
+            message: `"${name}": DISTRIBUTED mode requires a Standard workflow — not supported in Express workflows`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -755,7 +755,7 @@ export class AslLinter {
         // ExecutionType required when DISTRIBUTED
         if (mode === 'DISTRIBUTED' && !execType) {
           errors.push({
-            message: `"${name}": ItemProcessor.ProcessorConfig.ExecutionType est requis en mode DISTRIBUTED ("STANDARD" ou "EXPRESS")`,
+            message: `"${name}": ItemProcessor.ProcessorConfig.ExecutionType is required in DISTRIBUTED mode ("STANDARD" or "EXPRESS")`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -764,7 +764,7 @@ export class AslLinter {
         // ExecutionType irrelevant in INLINE mode
         if (mode === 'INLINE' && execType) {
           errors.push({
-            message: `"${name}": ItemProcessor.ProcessorConfig.ExecutionType est ignoré en mode INLINE — s'applique uniquement à DISTRIBUTED`,
+            message: `"${name}": ItemProcessor.ProcessorConfig.ExecutionType is ignored in INLINE mode — only applies to DISTRIBUTED`,
             severity: vscode.DiagnosticSeverity.Warning,
             searchKey: name,
           });
@@ -773,7 +773,7 @@ export class AslLinter {
         // INLINE concurrency > 40 — hard limit enforced by AWS
         if (mode === 'INLINE' && state.MaxConcurrency !== undefined && state.MaxConcurrency > 40) {
           errors.push({
-            message: `"${name}": mode INLINE limité à 40 itérations concurrentes (MaxConcurrency: ${state.MaxConcurrency}) — passez en mode DISTRIBUTED pour dépasser cette limite`,
+            message: `"${name}": INLINE mode limited to 40 concurrent iterations (MaxConcurrency: ${state.MaxConcurrency}) — switch to DISTRIBUTED to exceed this limit`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: name,
           });
@@ -785,7 +785,7 @@ export class AslLinter {
             .some(s => (s.Resource ?? '').includes('waitForTaskToken'));
           if (hasWaitForToken) {
             errors.push({
-              message: `"${name}": les child executions EXPRESS ne supportent pas .waitForTaskToken (request-response uniquement)`,
+              message: `"${name}": EXPRESS child executions do not support .waitForTaskToken (request-response only)`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -796,28 +796,28 @@ export class AslLinter {
         if (mode === 'INLINE') {
           if (state.Label !== undefined) {
             errors.push({
-              message: `"${name}": Label est ignoré en mode INLINE — s'applique uniquement aux Maps DISTRIBUTED`,
+              message: `"${name}": Label is ignored in INLINE mode — only applies to DISTRIBUTED Maps`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
           }
           if (state.ItemBatcher !== undefined) {
             errors.push({
-              message: `"${name}": "ItemBatcher" est réservé aux Maps DISTRIBUTED — ignoré en mode INLINE`,
+              message: `"${name}": "ItemBatcher" is reserved for DISTRIBUTED Maps — ignored in INLINE mode`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
           }
           if (state.ItemReader !== undefined) {
             errors.push({
-              message: `"${name}": "ItemReader" est réservé aux Maps DISTRIBUTED — ignoré en mode INLINE`,
+              message: `"${name}": "ItemReader" is reserved for DISTRIBUTED Maps — ignored in INLINE mode`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
           }
           if (state.ResultWriter !== undefined) {
             errors.push({
-              message: `"${name}": "ResultWriter" est réservé aux Maps DISTRIBUTED — ignoré en mode INLINE`,
+              message: `"${name}": "ResultWriter" is reserved for DISTRIBUTED Maps — ignored in INLINE mode`,
               severity: vscode.DiagnosticSeverity.Warning,
               searchKey: name,
             });
@@ -828,14 +828,14 @@ export class AslLinter {
         if (mode === 'DISTRIBUTED' && state.Label !== undefined) {
           if (state.Label.length > 40) {
             errors.push({
-              message: `"${name}": Label "${state.Label}" trop long (${state.Label.length} chars, max 40)`,
+              message: `"${name}": Label "${state.Label}" is too long (${state.Label.length} chars, max 40)`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
           }
           if (/[\s?*<>{}[\]"#%\\^|~`$&,;:/]/.test(state.Label)) {
             errors.push({
-              message: `"${name}": Label contient des caractères interdits`,
+              message: `"${name}": Label contains forbidden characters`,
               severity: vscode.DiagnosticSeverity.Error,
               searchKey: name,
             });
@@ -849,76 +849,76 @@ export class AslLinter {
       // ── J-1: Wrong fields for current query language ──────────────────────
       if (jsonata) {
         if (state.Parameters !== undefined) {
-          errors.push({ message: `"${name}": "Parameters" est un champ JSONPath — utilisez "Arguments" en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "Parameters" is a JSONPath field — use "Arguments" in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         if (state.OutputPath !== undefined) {
-          errors.push({ message: `"${name}": "OutputPath" est un champ JSONPath — utilisez "Output" en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "OutputPath" is a JSONPath field — use "Output" in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         if (state.InputPath !== undefined) {
-          errors.push({ message: `"${name}": "InputPath" n'est pas disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "InputPath" is not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         if (state.ResultPath !== undefined) {
-          errors.push({ message: `"${name}": "ResultPath" n'est pas disponible en mode JSONata — utilisez "Output"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "ResultPath" is not available in JSONata mode — use "Output"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         // ── J-5: ResultSelector is JSONPath-only ──────────────────────────
         if (state.ResultSelector !== undefined) {
-          errors.push({ message: `"${name}": "ResultSelector" est un champ JSONPath — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "ResultSelector" is a JSONPath field — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         // ── J-6: TimeoutSecondsPath / HeartbeatSecondsPath are JSONPath-only
         if (state.TimeoutSecondsPath !== undefined) {
-          errors.push({ message: `"${name}": "TimeoutSecondsPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "TimeoutSecondsPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         if (state.HeartbeatSecondsPath !== undefined) {
-          errors.push({ message: `"${name}": "HeartbeatSecondsPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "HeartbeatSecondsPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         // ── J-7: SecondsPath / TimestampPath in Wait are JSONPath-only ────
         if (state.Type === 'Wait') {
           if (state.SecondsPath !== undefined) {
-            errors.push({ message: `"${name}": "SecondsPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "SecondsPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
           if (state.TimestampPath !== undefined) {
-            errors.push({ message: `"${name}": "TimestampPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "TimestampPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
         }
         // ── R-18: Items vs ItemsPath per query language ───────────────────
         if (state.Type === 'Map' && state.ItemsPath !== undefined) {
-          errors.push({ message: `"${name}": "ItemsPath" est JSONPath uniquement — utilisez "Items" en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+          errors.push({ message: `"${name}": "ItemsPath" is JSONPath-only — use "Items" in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
         }
         // ── Map JSONPath-only path fields ─────────────────────────────────
         if (state.Type === 'Map') {
           if (state.MaxConcurrencyPath !== undefined) {
-            errors.push({ message: `"${name}": "MaxConcurrencyPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "MaxConcurrencyPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
           if (state.ToleratedFailureCountPath !== undefined) {
-            errors.push({ message: `"${name}": "ToleratedFailureCountPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "ToleratedFailureCountPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
           if (state.ToleratedFailurePercentagePath !== undefined) {
-            errors.push({ message: `"${name}": "ToleratedFailurePercentagePath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "ToleratedFailurePercentagePath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
         }
         // ── Fail JSONPath-only path fields ────────────────────────────────
         if (state.Type === 'Fail') {
           if (state.ErrorPath !== undefined) {
-            errors.push({ message: `"${name}": "ErrorPath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "ErrorPath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
           if (state.CausePath !== undefined) {
-            errors.push({ message: `"${name}": "CausePath" est JSONPath uniquement — non disponible en mode JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": "CausePath" is JSONPath-only — not available in JSONata mode`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           }
         }
       } else {
         if (state.Arguments !== undefined) {
-          errors.push({ message: `"${name}": "Arguments" est un champ JSONata — utilisez "Parameters" en mode JSONPath`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
+          errors.push({ message: `"${name}": "Arguments" is a JSONata field — use "Parameters" in JSONPath mode`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
         }
         if (state.Output !== undefined && state.Type !== 'Choice') {
-          errors.push({ message: `"${name}": "Output" est un champ JSONata — utilisez "OutputPath" en mode JSONPath`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
+          errors.push({ message: `"${name}": "Output" is a JSONata field — use "OutputPath" in JSONPath mode`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
         }
         // ── R-18: Items only in JSONata ───────────────────────────────────
         if (state.Type === 'Map' && state.Items !== undefined) {
-          errors.push({ message: `"${name}": "Items" est un champ JSONata — utilisez "ItemsPath" en mode JSONPath`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
+          errors.push({ message: `"${name}": "Items" is a JSONata field — use "ItemsPath" in JSONPath mode`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
         }
         // ── Assign is JSONata-only ────────────────────────────────────────
         if (state.Assign !== undefined) {
-          errors.push({ message: `"${name}": "Assign" est un champ JSONata — non disponible en mode JSONPath`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
+          errors.push({ message: `"${name}": "Assign" is a JSONata field — not available in JSONPath mode`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
         }
         // ── J-9: $$. context object path only in JSONPath ─────────────────
         // (checked in string fields below)
@@ -941,7 +941,7 @@ export class AslLinter {
                 const val = leaf[key];
                 if (typeof val === 'string' && !RFC3339_RE.test(val)) {
                   errors.push({
-                    message: `"${name}": Choices[${i}].${key} "${val}" invalide — format RFC3339 requis avec T majuscule et Z majuscule (ex: "2024-01-15T12:00:00Z")`,
+                    message: `"${name}": Choices[${i}].${key} "${val}" is not valid — RFC3339 format required with uppercase T and Z (e.g. "2024-01-15T12:00:00Z")`,
                     severity: vscode.DiagnosticSeverity.Error,
                     searchKey: name,
                   });
@@ -958,14 +958,14 @@ export class AslLinter {
           if (jsonata) {
             const leaves = collectChoiceLeaves(c as Record<string, unknown>);
             if (leaves.some(leaf => leaf.Variable !== undefined)) {
-              errors.push({ message: `"${name}": Choices[${i}] utilise "Variable" (JSONPath) — en mode JSONata utilisez "Condition"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": Choices[${i}] uses "Variable" (JSONPath) — in JSONata mode use "Condition"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
             if (c.Condition && !/^\{%/.test(c.Condition)) {
-              errors.push({ message: `"${name}": Choices[${i}].Condition doit être entouré de {%...%} — ex: "{% $states.input.field = 'valeur' %}"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": Choices[${i}].Condition must be wrapped in {%...%} — e.g. "{% $states.input.field = 'value' %}"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
           } else {
             if (c.Condition !== undefined) {
-              errors.push({ message: `"${name}": Choices[${i}] utilise "Condition" (JSONata) — en mode JSONPath utilisez "Variable"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": Choices[${i}] uses "Condition" (JSONata) — in JSONPath mode use "Variable"`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
           }
         });
@@ -998,19 +998,19 @@ export class AslLinter {
               errors.push({ message: `"${name}": ${path} — ${exprErr}`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
             if (!allowsResult && expr.includes('$states.result')) {
-              errors.push({ message: `"${name}": ${path} — $states.result n'est disponible que dans Task, Parallel et Map (pas dans ${state.Type})`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": ${path} — $states.result is only available in Task, Parallel, and Map (not in ${state.Type})`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
             // W-3: $states.errorOutput outside Catch
             if (expr.includes('$states.errorOutput')) {
-              errors.push({ message: `"${name}": ${path} — $states.errorOutput n'est disponible que dans un bloc Catch`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": ${path} — $states.errorOutput is only available inside a Catch block`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
             // W-4: $states.context.Task.Token outside waitForTaskToken
             if (expr.includes('$states.context.Task.Token') && !isWaitForToken) {
-              errors.push({ message: `"${name}": ${path} — $states.context.Task.Token n'est disponible que dans les états .waitForTaskToken`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
+              errors.push({ message: `"${name}": ${path} — $states.context.Task.Token is only available in .waitForTaskToken states`, severity: vscode.DiagnosticSeverity.Warning, searchKey: name });
             }
             // J-8: States.* intrinsic functions in JSONata mode
             if (/States\.(Format|StringToJson|JsonToString|Array|ArrayPartition|ArrayContains|ArrayRange|ArrayGetItem|ArrayLength|ArrayUnique|Base64Encode|Base64Decode|Hash|JsonMerge|MathAdd|MathRandom|StringSplit|UUID)\s*\(/.test(expr)) {
-              errors.push({ message: `"${name}": ${path} — les fonctions intrinsèques States.* ne fonctionnent qu'en mode JSONPath, pas JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+              errors.push({ message: `"${name}": ${path} — States.* intrinsic functions only work in JSONPath mode, not JSONata`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
             }
           }
         }
@@ -1025,7 +1025,7 @@ export class AslLinter {
         for (const [obj, fieldName] of rawStrFields) {
           if (obj == null) continue;
           scanForDoubledollar(obj, fieldName).forEach(path => {
-            errors.push({ message: `"${name}": ${path} — "$$.". est une syntaxe JSONPath (Context Object) — en mode JSONata utilisez $states.context`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
+            errors.push({ message: `"${name}": ${path} — "$$." is JSONPath syntax (Context Object) — in JSONata mode use $states.context`, severity: vscode.DiagnosticSeverity.Error, searchKey: name });
           });
         }
       }
@@ -1036,7 +1036,7 @@ export class AslLinter {
     for (const name of stateNames) {
       if (!reachable.has(name)) {
         errors.push({
-          message: `"${name}" est inaccessible (jamais référencé depuis StartAt)`,
+          message: `"${name}" is unreachable (never referenced from StartAt)`,
           severity: vscode.DiagnosticSeverity.Warning,
           searchKey: name,
         });
@@ -1126,23 +1126,23 @@ function scanForDoubledollar(obj: unknown, path: string): string[] {
 
 /**
  * Validate the raw inner content of a {% ... %} expression.
- * Returns a French error message if invalid, or null if OK.
+ * Returns an error message if invalid, or null if OK.
  */
 function validateJsonataExpr(raw: string): string | null {
   const expr = raw.trim();
 
   if (!expr)
-    return 'expression JSONata vide — {%  %} est invalide';
+    return 'empty JSONata expression — {%  %} is not valid';
   if (expr.includes('{%'))
-    return 'délimiteurs {%...%} imbriqués (non autorisé)';
+    return 'nested {%...%} delimiters (not allowed)';
   if (/\$eval\s*\(/.test(expr))
-    return '$eval() n\'est pas supporté par AWS Step Functions';
+    return '$eval() is not supported by AWS Step Functions';
   if (/\$\./.test(expr))
-    return 'syntaxe JSONPath "$." dans une expression JSONata — utilisez $states.input.champ au lieu de $.champ';
+    return 'JSONPath "$." syntax inside a JSONata expression — use $states.input.field instead of $.field';
   if (/[\+\-\*\/\%\&]$/.test(expr))
-    return 'expression incomplète (se termine par un opérateur)';
+    return 'incomplete expression (ends with an operator)';
   if (/\.$/.test(expr))
-    return 'expression incomplète (se termine par ".")';
+    return 'incomplete expression (ends with ".")';
 
   // Balance check (ignoring content inside string literals)
   let inSQ = false, inDQ = false;
@@ -1153,18 +1153,18 @@ function validateJsonataExpr(raw: string): string | null {
     else if (c === '"' && !inSQ && p !== '\\') inDQ = !inDQ;
     if (!inSQ && !inDQ) {
       if      (c === '{') d.brace++;
-      else if (c === '}') { if (--d.brace < 0) return 'accolade "}" inattendue'; }
+      else if (c === '}') { if (--d.brace < 0) return 'unexpected closing brace "}"'; }
       else if (c === '[') d.bracket++;
-      else if (c === ']') { if (--d.bracket < 0) return 'crochet "]" inattendu'; }
+      else if (c === ']') { if (--d.bracket < 0) return 'unexpected closing bracket "]"'; }
       else if (c === '(') d.paren++;
-      else if (c === ')') { if (--d.paren < 0) return 'parenthèse ")" inattendue'; }
+      else if (c === ')') { if (--d.paren < 0) return 'unexpected closing parenthesis ")"'; }
     }
   }
-  if (inSQ)       return 'guillemet simple non fermé';
-  if (inDQ)       return 'guillemet double non fermé';
-  if (d.brace)    return `accolade ouvrante non fermée (${d.brace} manquante${d.brace > 1 ? 's' : ''})`;
-  if (d.bracket)  return `crochet ouvrant non fermé (${d.bracket} manquant${d.bracket > 1 ? 's' : ''})`;
-  if (d.paren)    return `parenthèse ouvrante non fermée (${d.paren} manquante${d.paren > 1 ? 's' : ''})`;
+  if (inSQ)       return 'unclosed single quote';
+  if (inDQ)       return 'unclosed double quote';
+  if (d.brace)    return `unclosed opening brace (${d.brace} missing)`;
+  if (d.bracket)  return `unclosed opening bracket (${d.bracket} missing)`;
+  if (d.paren)    return `unclosed opening parenthesis (${d.paren} missing)`;
 
   return null;
 }
@@ -1230,7 +1230,7 @@ function scanIntrinsicCalls(
         const algo = args[1].replace(/^['"]|['"]$/g, '');
         if (!VALID_HASH_ALGOS.has(algo)) {
           errors.push({
-            message: `"${stateName}": ${path} — States.Hash: algorithme "${algo}" invalide — valeurs acceptées: ${[...VALID_HASH_ALGOS].join(', ')}`,
+            message: `"${stateName}": ${path} — States.Hash: algorithm "${algo}" is not valid — accepted values: ${[...VALID_HASH_ALGOS].join(', ')}`,
             severity: vscode.DiagnosticSeverity.Error,
             searchKey: stateName,
           });
@@ -1243,7 +1243,7 @@ function scanIntrinsicCalls(
       const args = splitIntrinsicArgs(mergeArgs);
       if (args.length >= 3 && args[2].trim() !== 'false') {
         errors.push({
-          message: `"${stateName}": ${path} — States.JsonMerge: le 3ème argument doit être "false" (seule la fusion superficielle est supportée)`,
+          message: `"${stateName}": ${path} — States.JsonMerge: the 3rd argument must be "false" (only shallow merge is supported)`,
           severity: vscode.DiagnosticSeverity.Error,
           searchKey: stateName,
         });

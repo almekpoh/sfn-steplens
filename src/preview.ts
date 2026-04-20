@@ -23,6 +23,7 @@ export class PreviewPanel {
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
+        retainContextWhenHidden: true,
         localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'webview'))],
       }
     );
@@ -39,6 +40,12 @@ export class PreviewPanel {
     this._render();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+    this._panel.onDidChangeViewState(({ webviewPanel }) => {
+      if (webviewPanel.visible) {
+        this._panel.webview.postMessage({ type: 'resize' });
+      }
+    }, null, this._disposables);
 
     this._panel.webview.onDidReceiveMessage(
       msg => {
@@ -80,7 +87,7 @@ export class PreviewPanel {
     const parsed = AslParser.parse(this._currentDoc.getText(), this._currentDoc.languageId);
     if (!parsed) {
       this._renderedTabIds.clear();
-      this._panel.webview.html = this._errorHtml('Aucune définition Step Functions détectée dans ce fichier.');
+      this._panel.webview.html = this._errorHtml('No Step Functions definition detected in this file.');
       return;
     }
 
@@ -147,9 +154,9 @@ export class PreviewPanel {
       template = fs.readFileSync(templatePath, 'utf8');
     } catch {
       vscode.window.showErrorMessage(
-        "StepLens: template de prévisualisation introuvable — réinstallez l'extension."
+        "StepLens: preview template not found — please reinstall the extension."
       );
-      return this._errorHtml("Erreur interne : template manquant. Réinstallez l'extension.");
+      return this._errorHtml("Internal error: template missing. Please reinstall the extension.");
     }
 
     const vendorUri = this._panel.webview.asWebviewUri(
@@ -189,7 +196,7 @@ export class PreviewPanel {
     });
     if (saveUri) {
       await vscode.workspace.fs.writeFile(saveUri, Buffer.from(base64, 'base64'));
-      vscode.window.showInformationMessage(`StepLens: exporté → ${path.basename(saveUri.fsPath)}`);
+      vscode.window.showInformationMessage(`StepLens: exported → ${path.basename(saveUri.fsPath)}`);
     }
   }
 

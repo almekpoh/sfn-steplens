@@ -336,13 +336,15 @@ States:
     assert.ok(node.label.includes('Something exploded'), `label was: ${node.label}`);
   });
 
-  it('does not create dangling start edge when StartAt is not in States', () => {
+  it('creates a ghost node and start edge when StartAt is not in States', () => {
     const g = AslParser.toGraphData({
       StartAt: 'Missing',
       States: { A: { Type: 'Task', Resource: 'arn', End: true } },
     });
-    const startEdge = g.edges.find(e => e.source === '__START__');
-    assert.ok(!startEdge, `start edge should not exist when StartAt is missing from States`);
+    const ghostNode = g.nodes.find(n => n.id === 'Missing' && n.type === 'GHOST');
+    assert.ok(ghostNode, 'ghost node should be created for missing StartAt state');
+    const startEdge = g.edges.find(e => e.source === '__START__' && e.target === 'Missing');
+    assert.ok(startEdge, 'start edge should point to the ghost node');
   });
 });
 

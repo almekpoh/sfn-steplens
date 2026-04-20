@@ -2,6 +2,38 @@
 
 ---
 
+## [0.2.0] — 2026-04-20
+
+### Fixed
+
+**Graph preview — black screen**
+
+- **Vendor bundle** — Cytoscape and dagre are now bundled locally (`webview/vendor.js` via esbuild); CDN scripts could be blocked by corporate proxies or offline environments, causing a silent blank canvas
+- **CSP** — Content-Security-Policy now uses `${webview.cspSource}` exclusively; the previous mixed `cdn.jsdelivr.net` source was rejected by strict VS Code webview sandboxing
+- **Error surface** — `window.onerror` and a top-level `try/catch` now catch any rendering failure and display a readable message in the graph area instead of leaving the panel blank
+- **`retainContextWhenHidden`** — webview context was destroyed each time the panel was hidden (tab switch, split editor); state, zoom, and pan were lost and the canvas could not recover without a full reload
+- **`onDidChangeViewState` resize** — when the panel was revealed after being hidden, the Cytoscape container had 0×0 dimensions; a `resize` + `fit` is now triggered on visibility change
+
+**Linter**
+
+- **R-3 / R-6 duplicate errors** — both rules fired on `Parallel` and `Map` states that have neither `Next` nor `End` (which is valid — they terminate via branches); R-3 now excludes `Parallel` and `Map` state types
+
+**Graph correctness**
+
+- **Ghost nodes for missing state references** — edges pointing to an undeclared state name (broken `Next`, `Default`, `Catch`, `Choices`) previously caused Cytoscape to crash; the missing state is now rendered as a dashed red `(not found)` ghost node so the graph remains usable and the broken reference is visible
+- **Ghost node click guard** — clicking a ghost node no longer sends a `goto` message to the extension (the state does not exist in the source)
+- **Recursive `extractSubGraphs`** — nested `Parallel`/`Map` states (a branch containing another `Parallel`, etc.) now produce tabs at every depth level; previously only the first level was extracted
+
+### Improved
+
+- **Smart reload notification** — on extension update, patch bumps (`0.1.x → 0.1.y`) trigger the less intrusive `restartExtensionHost`; minor and major bumps (`0.x → 0.y` or `x → y`) trigger a full `reloadWindow` to ensure webview assets are refreshed
+
+### Infrastructure
+
+- **ESLint v9 flat config** — migrated from `.eslintrc.json` to `eslint.config.js` (`eslint.config.js` format required by ESLint ≥ 9)
+
+---
+
 ## [0.1.2] — 2026-04-19
 
 ### Added
@@ -122,7 +154,7 @@
 - Choice node color: yellow diamond (was a plain rectangle)
 - Catch edge labels show full `ErrorEquals` array
 - **Hover tooltips** on linter underlines — shows error/warning message with `$(error)` / `$(warning)` icons
-- **Status bar item** — displays `✓ StepLens`, `⚠ N alertes`, or `✗ N erreurs`; click to open the Problems panel
+- **Status bar item** — displays `✓ StepLens`, `⚠ N warnings`, or `✗ N errors`; click to open the Problems panel
 - **Sub-graph tabs** for Parallel branches and Map iterators — each branch opens in its own tab beside "Main"
 - All Cytoscape instances initialised upfront with `visibility:hidden` (keeps real container dimensions, fixing the 0×0 sizing issue that caused empty sub-graph views)
 - **Export** to PNG and JPEG via ⬇ PNG / ⬇ JPEG buttons in the graph toolbar
