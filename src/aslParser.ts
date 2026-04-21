@@ -231,8 +231,9 @@ export class AslParser {
 
     for (const [name, state] of Object.entries(def.States)) {
       let label = name;
-      const isWaitForToken = (state.Resource ?? '').includes('waitForTaskToken');
-      const isHttpTask = (state.Resource ?? '').includes('states:::http:invoke');
+      const resourceStr = typeof state.Resource === 'string' ? state.Resource : '';
+      const isWaitForToken = resourceStr.includes('waitForTaskToken');
+      const isHttpTask = resourceStr.includes('states:::http:invoke');
       const isDistributedMap = state.Type === 'Map' &&
         (state.ItemProcessor as AslItemProcessor | undefined)?.ProcessorConfig?.Mode === 'DISTRIBUTED';
 
@@ -273,8 +274,27 @@ export class AslParser {
     );
     if (hasEnd) nodes.push({ id: '__END__', label: 'End', type: 'END' });
 
-    // Start edge — only if StartAt actually exists in States (guard against dangling edge)
-    if (def.States[def.StartAt] !== undefined) {
+    // Collect all state names referenced as targets but absent from States
+    // and materialise them as ghost nodes so Cytoscape never receives an edge
+    // pointing to a non-existent node (which can crash the layout engine).
+    const ghostIds = new Set<string>();
+    const ensureTarget = (target: string) => {
+      if (def.States[target] === undefined && target !== '__END__' && target !== '__START__' && !ghostIds.has(target)) {
+        ghostIds.add(target);
+        nodes.push({ id: target, label: `${target}\n(not found)`, type: 'GHOST' });
+      }
+    };
+
+    for (const state of Object.values(def.States)) {
+      if (state.Next)     ensureTarget(state.Next);
+      if (state.Default)  ensureTarget(state.Default);
+      state.Catch?.forEach(c => ensureTarget(c.Next));
+      state.Choices?.forEach(c => { if (c.Next) ensureTarget(c.Next); });
+    }
+    if (def.StartAt && def.States[def.StartAt] === undefined) ensureTarget(def.StartAt);
+
+    // Start edge — only if StartAt actually exists (real or ghost node)
+    if (def.States[def.StartAt] !== undefined || ghostIds.has(def.StartAt)) {
       edges.push({ id: eid(), source: '__START__', target: def.StartAt, label: '', edgeType: 'normal' });
     }
 
@@ -332,30 +352,40 @@ export class AslParser {
     const result: SubGraph[] = [];
     const safe = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '_');
 
-    for (const [name, state] of Object.entries(def.States)) {
-      if (state.Type === 'Parallel' && state.Branches?.length) {
-        state.Branches.forEach((branch, i) => {
-          result.push({
-            id: `${safe(name)}_b${i}`,
-            label: `${name} — Branch ${i + 1}`,
-            type: 'Parallel',
-            parentStateName: name,
-            data: AslParser.toGraphData(branch),
+    const walk = (states: Record<string, AslState>, idPrefix: string) => {
+      for (const [name, state] of Object.entries(states)) {
+        const safeId = idPrefix ? `${idPrefix}_${safe(name)}` : safe(name);
+
+        if (state.Type === 'Parallel' && state.Branches?.length) {
+          state.Branches.forEach((branch, i) => {
+            const tabId = `${safeId}_b${i}`;
+            result.push({
+              id: tabId,
+              label: `${name} — Branch ${i + 1}`,
+              type: 'Parallel',
+              parentStateName: name,
+              data: AslParser.toGraphData(branch),
+            });
+            walk(branch.States ?? {}, tabId);
           });
-        });
-      } else if (state.Type === 'Map') {
-        const iterator = state.Iterator ?? state.ItemProcessor;
-        if (iterator) {
-          result.push({
-            id: `${safe(name)}_iter`,
-            label: `${name} — Iterator`,
-            type: 'Map',
-            parentStateName: name,
-            data: AslParser.toGraphData(iterator),
-          });
+        } else if (state.Type === 'Map') {
+          const iterator = state.Iterator ?? state.ItemProcessor;
+          if (iterator) {
+            const tabId = `${safeId}_iter`;
+            result.push({
+              id: tabId,
+              label: `${name} — Iterator`,
+              type: 'Map',
+              parentStateName: name,
+              data: AslParser.toGraphData(iterator),
+            });
+            walk(iterator.States ?? {}, tabId);
+          }
         }
       }
-    }
+    };
+
+    walk(def.States, '');
     return result;
   }
 

@@ -2,6 +2,86 @@
 
 ---
 
+## [0.2.1] — 2026-04-21
+
+### Fixed
+
+**Linter & Parser — CloudFormation intrinsic Resource references**
+
+Task states using CloudFormation intrinsic functions for their `Resource` field (e.g. `Fn::GetAtt: [MyLambda, Arn]` or `!GetAtt MyLambda.Arn`) no longer crash the linter or parser:
+
+- **`Fn::GetAtt` / `Fn::Sub` (map form)** — parsed as an object by the YAML library; `??` did not fall back to `""`, causing `.includes()` and `.startsWith()` calls to throw at runtime
+- **`!GetAtt` / `!Ref` (tag form)** — parsed as a plain string without colons (e.g. `"MyLambda.Arn"`); now correctly identified as an unresolvable CF reference and excluded from ARN validation
+- All ARN-based checks (format, SDK pattern compatibility, HTTP Task field requirements) are skipped for these references — they are only applicable to literal ARN strings and have no false-positive risk here
+
+**Linter — dynamic value false positives removed**
+
+Fields that accept dynamic values (JSONata expressions `{%…%}` or JSONPath references `$.` / `$$.`) no longer trigger static-format validators:
+
+- **`Timestamp` in Wait state** — RFC3339 validation skipped when value is a JSONata expression or JSONPath reference
+- **`TimestampEquals` / `TimestampGreaterThan` / … in Choice branches** — same
+- **HTTP Task `Method`** — accepted method validation skipped for dynamic values
+- **`Retry.JitterStrategy`** — `FULL`/`NONE` enum check skipped for dynamic values
+- **R-12 (`HeartbeatSeconds < TimeoutSeconds`)** — comparison skipped when either field is not a plain number, preventing a lexicographic false positive when both are dynamic expressions
+
+**Linter — false positive warnings removed**
+
+All checks that assumed a specific workflow type (Standard vs Express) have been removed. The linter cannot determine the workflow type from the ASL definition alone, so these rules generated spurious warnings on every valid Standard workflow.
+
+- **DISTRIBUTED Map** — warning "requires a Standard workflow" removed; DISTRIBUTED mode is valid in both Standard and Express parent workflows
+- **Activity ARN** — warning "not supported in Express workflows" removed; Activities are valid in Standard workflows
+- **`.sync` / `.sync:2` integration pattern** — warning "requires a Standard workflow" removed; these patterns are documented constraints, not detectable errors without knowing the parent type
+- **`.waitForTaskToken` integration pattern** — same removal rationale
+- **`End: true` on Succeed/Fail** — warning "implicit and redundant" removed; AWS silently ignores the field and many users write it explicitly for clarity
+- **HTTP Task without `ConnectionArn`** — recommendation warning removed; public APIs do not require authentication
+- **`MaxConcurrency: 0`** — warning "unlimited concurrency" removed; 0 is the documented and intentional way to express unlimited concurrency
+- **`Iterator` deprecated** — migration warning removed; `Iterator` still works and the warning generated permanent noise on legacy codebases
+- **`Parameters` deprecated in Map** — same removal rationale
+
+**Linter — precision fix**
+
+- **`waitForTaskToken` without `HeartbeatSeconds`** — now only warns when neither `HeartbeatSeconds` nor `TimeoutSeconds` (nor their `*Path` variants) is set; a state-level `TimeoutSeconds` prevents indefinite blocking and was previously ignored by this check
+
+**Graph preview — black screen (additional fixes)**
+
+- **Initial fit** — all Cytoscape instances now call `resize()` + `fit()` inside a `requestAnimationFrame` after init, guaranteeing the browser has completed its flex layout before Cytoscape measures container dimensions
+- **`update` viewport** — the `update` message handler no longer restores the previous zoom/pan after a layout rerun; it now calls `fit()` on the active tab, preventing the view from landing on an empty area when node positions shift
+- **`resize` handler scope** — the `resize` message now iterates all instances (not only the active tab), ensuring hidden sub-graph tabs are also corrected when the panel becomes visible
+
+---
+
+## [0.2.0] — 2026-04-20
+
+### Fixed
+
+**Graph preview — black screen**
+
+- **Vendor bundle** — Cytoscape and dagre are now bundled locally (`webview/vendor.js` via esbuild); CDN scripts could be blocked by corporate proxies or offline environments, causing a silent blank canvas
+- **CSP** — Content-Security-Policy now uses `${webview.cspSource}` exclusively; the previous mixed `cdn.jsdelivr.net` source was rejected by strict VS Code webview sandboxing
+- **Error surface** — `window.onerror` and a top-level `try/catch` now catch any rendering failure and display a readable message in the graph area instead of leaving the panel blank
+- **`retainContextWhenHidden`** — webview context was destroyed each time the panel was hidden (tab switch, split editor); state, zoom, and pan were lost and the canvas could not recover without a full reload
+- **`onDidChangeViewState` resize** — when the panel was revealed after being hidden, the Cytoscape container had 0×0 dimensions; a `resize` + `fit` is now triggered on visibility change
+
+**Linter**
+
+- **R-3 / R-6 duplicate errors** — both rules fired on `Parallel` and `Map` states that have neither `Next` nor `End` (which is valid — they terminate via branches); R-3 now excludes `Parallel` and `Map` state types
+
+**Graph correctness**
+
+- **Ghost nodes for missing state references** — edges pointing to an undeclared state name (broken `Next`, `Default`, `Catch`, `Choices`) previously caused Cytoscape to crash; the missing state is now rendered as a dashed red `(not found)` ghost node so the graph remains usable and the broken reference is visible
+- **Ghost node click guard** — clicking a ghost node no longer sends a `goto` message to the extension (the state does not exist in the source)
+- **Recursive `extractSubGraphs`** — nested `Parallel`/`Map` states (a branch containing another `Parallel`, etc.) now produce tabs at every depth level; previously only the first level was extracted
+
+### Improved
+
+- **Smart reload notification** — on extension update, patch bumps (`0.1.x → 0.1.y`) trigger the less intrusive `restartExtensionHost`; minor and major bumps (`0.x → 0.y` or `x → y`) trigger a full `reloadWindow` to ensure webview assets are refreshed
+
+### Infrastructure
+
+- **ESLint v9 flat config** — migrated from `.eslintrc.json` to `eslint.config.js` (`eslint.config.js` format required by ESLint ≥ 9)
+
+---
+
 ## [0.1.2] — 2026-04-19
 
 ### Added
@@ -122,7 +202,7 @@
 - Choice node color: yellow diamond (was a plain rectangle)
 - Catch edge labels show full `ErrorEquals` array
 - **Hover tooltips** on linter underlines — shows error/warning message with `$(error)` / `$(warning)` icons
-- **Status bar item** — displays `✓ StepLens`, `⚠ N alertes`, or `✗ N erreurs`; click to open the Problems panel
+- **Status bar item** — displays `✓ StepLens`, `⚠ N warnings`, or `✗ N errors`; click to open the Problems panel
 - **Sub-graph tabs** for Parallel branches and Map iterators — each branch opens in its own tab beside "Main"
 - All Cytoscape instances initialised upfront with `visibility:hidden` (keeps real container dimensions, fixing the 0×0 sizing issue that caused empty sub-graph views)
 - **Export** to PNG and JPEG via ⬇ PNG / ⬇ JPEG buttons in the graph toolbar
